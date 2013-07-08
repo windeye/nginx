@@ -206,6 +206,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
             goto done;
         }
 
+        /* 在解析-g的全局配置时，不能出现{} */
         if (rc == NGX_CONF_BLOCK_START) {
 
             if (type == parse_param) {
@@ -218,6 +219,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
 
         /* rc == NGX_OK || rc == NGX_CONF_BLOCK_START */
 
+        /* 这个参数值是NULL */
         if (cf->handler) {
 
             /*
@@ -452,12 +454,14 @@ ngx_conf_read_token(ngx_conf_t *cf)
     cf->args->nelts = 0;
     b = cf->conf_file->buffer;
     start = b->pos;
+    /* 如果是从配置文件读取的，值就为1，如果是-g的数据，值为0 */
     start_line = cf->conf_file->line;
 
     file_size = ngx_file_size(&cf->conf_file->file.info);
 
     for ( ;; ) {
 
+        /* 读到缓存的文件已经解析完，就再从文件中读入一段 */
         if (b->pos >= b->last) {
 
             if (cf->conf_file->file.offset >= file_size) {
@@ -536,6 +540,7 @@ ngx_conf_read_token(ngx_conf_t *cf)
 
         ch = *b->pos++;
 
+        /* 读到换行符，行数+1，若这行是注释，则注释flag置为0*/
         if (ch == LF) {
             cf->conf_file->line++;
 
@@ -544,15 +549,18 @@ ngx_conf_read_token(ngx_conf_t *cf)
             }
         }
 
+        /* 读的是注释，继续读 */
         if (sharp_comment) {
             continue;
         }
 
+        /* \符号内 */
         if (quoted) {
             quoted = 0;
             continue;
         }
 
+        /* 需要空格 */
         if (need_space) {
             if (ch == ' ' || ch == '\t' || ch == CR || ch == LF) {
                 last_space = 1;
@@ -579,6 +587,9 @@ ngx_conf_read_token(ngx_conf_t *cf)
             }
         }
 
+        /* 开始解析前和解析一个完整word后置为1，这是所有的空格会跳过，
+         * 找到一个正常的k v配置时就会置为0，解析到各种引号也会置为0。
+         * */
         if (last_space) {
             if (ch == ' ' || ch == '\t' || ch == CR || ch == LF) {
                 continue;
@@ -621,6 +632,7 @@ ngx_conf_read_token(ngx_conf_t *cf)
                 last_space = 0;
                 continue;
 
+            /* 如果是引号，则要将引号之后的值作为word的开始*/
             case '"':
                 start++;
                 d_quoted = 1;

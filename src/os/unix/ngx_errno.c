@@ -54,6 +54,11 @@ ngx_strerror_init(void)
      * ngx_strerror() is not ready to work at this stage, therefore,
      * malloc() is used and possible errors are logged using strerror().
      */
+    
+    /*
+     * 保存0-125的错误提示信息到ngx_sys_errlist，125的值由NGX_SYS_NERR保存，
+     * NGX_SYS_NERR定objs/ngx_auto_config.h中，configure时由配置工具生成.
+     */
 
     len = NGX_SYS_NERR * sizeof(ngx_str_t);
 

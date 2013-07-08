@@ -68,8 +68,10 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     ngx_time_update();
 
 
+    /* 使用同一个log handler */
     log = old_cycle->log;
 
+    /* 16Kb */
     pool = ngx_create_pool(NGX_CYCLE_POOL_SIZE, log);
     if (pool == NULL) {
         return NULL;
@@ -87,6 +89,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     cycle->new_log.log_level = NGX_LOG_ERR;
     cycle->old_cycle = old_cycle;
 
+    /* 配置文件前缀，都是深copy */
     cycle->conf_prefix.len = old_cycle->conf_prefix.len;
     cycle->conf_prefix.data = ngx_pstrdup(pool, &old_cycle->conf_prefix);
     if (cycle->conf_prefix.data == NULL) {
@@ -94,6 +97,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
         return NULL;
     }
 
+    /* 工作路径前缀，默认为/usr/local/nginx */
     cycle->prefix.len = old_cycle->prefix.len;
     cycle->prefix.data = ngx_pstrdup(pool, &old_cycle->prefix);
     if (cycle->prefix.data == NULL) {
@@ -101,6 +105,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
         return NULL;
     }
 
+    /* 配置文件路径，默认为/usr/local/nginx/conf/nginx.conf */
     cycle->conf_file.len = old_cycle->conf_file.len;
     cycle->conf_file.data = ngx_pnalloc(pool, old_cycle->conf_file.len + 1);
     if (cycle->conf_file.data == NULL) {
@@ -110,6 +115,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     ngx_cpystrn(cycle->conf_file.data, old_cycle->conf_file.data,
                 old_cycle->conf_file.len + 1);
 
+    /* 这个是干啥用的 */
     cycle->conf_param.len = old_cycle->conf_param.len;
     cycle->conf_param.data = ngx_pstrdup(pool, &old_cycle->conf_param);
     if (cycle->conf_param.data == NULL) {
@@ -120,6 +126,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
 
     n = old_cycle->paths.nelts ? old_cycle->paths.nelts : 10;
 
+    /* 这个是干啥用的，打开的文件？？？ */
     cycle->paths.elts = ngx_pcalloc(pool, n * sizeof(ngx_path_t *));
     if (cycle->paths.elts == NULL) {
         ngx_destroy_pool(pool);
@@ -142,6 +149,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
         n = 20;
     }
 
+    /* 打开的文件链表 */
     if (ngx_list_init(&cycle->open_files, pool, n, sizeof(ngx_open_file_t))
         != NGX_OK)
     {
@@ -161,6 +169,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
         n = 1;
     }
 
+    /* 共享内存链表 */
     if (ngx_list_init(&cycle->shared_memory, pool, n, sizeof(ngx_shm_zone_t))
         != NGX_OK)
     {
@@ -170,6 +179,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
 
     n = old_cycle->listening.nelts ? old_cycle->listening.nelts : 10;
 
+    /* 监听的socket数组 */
     cycle->listening.elts = ngx_pcalloc(pool, n * sizeof(ngx_listening_t));
     if (cycle->listening.elts == NULL) {
         ngx_destroy_pool(pool);
@@ -191,7 +201,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
         return NULL;
     }
 
-
+    /* 获取主机名，并保存在buff中 */
     if (gethostname(hostname, NGX_MAXHOSTNAMELEN) == -1) {
         ngx_log_error(NGX_LOG_EMERG, log, ngx_errno, "gethostname() failed");
         ngx_destroy_pool(pool);
@@ -212,6 +222,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     ngx_strlow(cycle->hostname.data, (u_char *) hostname, cycle->hostname.len);
 
 
+    /* CORE module配置文件的创建 */
     for (i = 0; ngx_modules[i]; i++) {
         if (ngx_modules[i]->type != NGX_CORE_MODULE) {
             continue;
@@ -225,6 +236,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
                 ngx_destroy_pool(pool);
                 return NULL;
             }
+            /* 这个数组啥时候分配陪的 */
             cycle->conf_ctx[ngx_modules[i]->index] = rv;
         }
     }

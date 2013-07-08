@@ -212,6 +212,9 @@ main(int argc, char *const *argv)
         return 1;
     }
 
+    /*
+     * 获取启动选项
+     */
     if (ngx_get_options(argc, argv) != NGX_OK) {
         return 1;
     }
@@ -301,13 +304,26 @@ main(int argc, char *const *argv)
         return 1;
     }
 
+    /*
+     * 将参数保存到一个全局的数组中，还以为会保存到cycle的一个变量中呢。
+     * 传cycle只是为了使用cycle的log参数。
+     * */
     if (ngx_save_argv(&init_cycle, argc, argv) != NGX_OK) {
         return 1;
     }
 
+    /*
+     * 主要是配置cycle的配置文件路径，路径前缀，配置文件前缀等。
+     */
     if (ngx_process_options(&init_cycle) != NGX_OK) {
         return 1;
     }
+
+    /*
+     * ngx_os_init函数获取OS名称和版本号，CPU个数，单个进程能打开的最大文件数，
+     * 修改ps命令显示的nginx进程名称。获取OS信息是通过ngx_os_specific_init实现
+     * 的，其内调用了uname，最重要的语句是ngx_os_io = ngx_linux_io
+     */
 
     if (ngx_os_init(log) != NGX_OK) {
         return 1;
@@ -320,6 +336,10 @@ main(int argc, char *const *argv)
     if (ngx_crc32_table_init() != NGX_OK) {
         return 1;
     }
+
+    /*
+     * 打开(监听)通过环境变量NGINX保存的socket句柄，一般不用这个功能，直接返回。
+     */
 
     if (ngx_add_inherited_sockets(&init_cycle) != NGX_OK) {
         return 1;
@@ -844,6 +864,10 @@ ngx_process_options(ngx_cycle_t *cycle)
         len = ngx_strlen(ngx_prefix);
         p = ngx_prefix;
 
+        /*
+         * 如果不是以'/'结尾，则重新分配(len+1)大小的空间，将prefix复制过去，
+         * 并以'/'结尾
+         */
         if (len && !ngx_path_separator(p[len - 1])) {
             p = ngx_pnalloc(cycle->pool, len + 1);
             if (p == NULL) {
@@ -867,6 +891,10 @@ ngx_process_options(ngx_cycle_t *cycle)
         if (p == NULL) {
             return NGX_ERROR;
         }
+
+        /*
+         * 获取当前工作目录
+         */
 
         if (ngx_getcwd(p, NGX_MAX_PATH) == 0) {
             ngx_log_stderr(ngx_errno, "[emerg]: " ngx_getcwd_n " failed");
