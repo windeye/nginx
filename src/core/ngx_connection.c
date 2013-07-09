@@ -773,8 +773,10 @@ ngx_get_connection(ngx_socket_t s, ngx_log_t *log)
 
     /* ngx_mutex_lock */
 
+    /* 从空闲链接里取出头结点， */
     c = ngx_cycle->free_connections;
 
+    /* 如果没有空闲连接，则处理连接上的事件 */
     if (c == NULL) {
         ngx_drain_connections();
         c = ngx_cycle->free_connections;
@@ -799,11 +801,14 @@ ngx_get_connection(ngx_socket_t s, ngx_log_t *log)
         ngx_cycle->files[s] = c;
     }
 
+    /* 临时保存读写事件的指针 */
     rev = c->read;
     wev = c->write;
 
+    /* 清空内存的数据 */
     ngx_memzero(c, sizeof(ngx_connection_t));
 
+    /* 恢复之前的读写事件指针 */
     c->read = rev;
     c->write = wev;
     c->fd = s;

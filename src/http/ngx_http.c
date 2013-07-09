@@ -134,6 +134,7 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
+    /* 很重要的一行代码，修改了传递进来的conf为http_conf_ctx */
     *(ngx_http_conf_ctx_t **) conf = ctx;
 
 
@@ -145,10 +146,14 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             continue;
         }
 
+        /* 用的是ctx_index，index是该模块在所有模块中的索引标示 */
         ngx_modules[m]->ctx_index = ngx_http_max_module++;
     }
 
 
+    /* http级别的配置中包含main，svr和loc三种配置，而且是为每一个
+     * http_module都要分配这三种配置的指针=>sizeof(void *) * ngx_http_max_module)。
+     */
     /* the http main_conf context, it is the same in the all http contexts */
 
     ctx->main_conf = ngx_pcalloc(cf->pool,
@@ -200,6 +205,7 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             }
         }
 
+        /* NULL */
         if (module->create_srv_conf) {
             ctx->srv_conf[mi] = module->create_srv_conf(cf);
             if (ctx->srv_conf[mi] == NULL) {
@@ -207,6 +213,7 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             }
         }
 
+        /* NULL */
         if (module->create_loc_conf) {
             ctx->loc_conf[mi] = module->create_loc_conf(cf);
             if (ctx->loc_conf[mi] == NULL) {
@@ -215,7 +222,9 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         }
     }
 
+    /* 保存当前使用的cf，因为我们只是在解析HTTP时需要改变当前的cf */
     pcf = *cf;
+    /* 修改为当前模块的上下文 */
     cf->ctx = ctx;
 
     for (m = 0; ngx_modules[m]; m++) {
@@ -236,8 +245,10 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     cf->module_type = NGX_HTTP_MODULE;
     cf->cmd_type = NGX_HTTP_MAIN_CONF;
+    /* 在这里解析http block */
     rv = ngx_conf_parse(cf, NULL);
 
+    /* 在解析完一个block后，如果成功，就会返回OK */
     if (rv != NGX_CONF_OK) {
         goto failed;
     }
@@ -322,6 +333,7 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
      * and in postconfiguration process
      */
 
+    /* 回复以前的指针 */
     *cf = pcf;
 
 

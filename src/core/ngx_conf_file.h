@@ -155,11 +155,14 @@ typedef char *(*ngx_conf_handler_pt)(ngx_conf_t *cf,
 
 
 struct ngx_conf_s {
+    /* 解析到的配置名 */
     char                 *name;
+    /* 当前配置的所有参数 */
     ngx_array_t          *args;
 
     ngx_cycle_t          *cycle;
     ngx_pool_t           *pool;
+    /* 这个pool将会在配置解析完毕后释放。*/
     ngx_pool_t           *temp_pool;
     ngx_conf_file_t      *conf_file;
     ngx_log_t            *log;

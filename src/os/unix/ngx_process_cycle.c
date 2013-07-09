@@ -106,6 +106,13 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
     sigaddset(&set, ngx_signal_value(NGX_SHUTDOWN_SIGNAL));
     sigaddset(&set, ngx_signal_value(NGX_CHANGEBIN_SIGNAL));
 
+    /* 
+     * 设定对信号屏蔽集内的信号的处理方式(阻塞或不阻塞)。
+     * int sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
+     * SIG_BLOCK     加入信号到进程屏蔽。
+     * SIG_UNBLOCK   从进程屏蔽里将信号删除。
+     * SIG_SETMASK   将set的值设定为新的进程屏蔽。
+     */
     if (sigprocmask(SIG_BLOCK, &set, NULL) == -1) {
         ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
                       "sigprocmask() failed");

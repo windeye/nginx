@@ -15,10 +15,10 @@
 
 
 typedef struct {
-     ngx_uint_t  command;
-     ngx_pid_t   pid;
-     ngx_int_t   slot;
-     ngx_fd_t    fd;
+     ngx_uint_t  command;  /* 发送的命令类型 */
+     ngx_pid_t   pid;      /* 发送方进程id */
+     ngx_int_t   slot;     /* 发送方在进程表中的偏移*/
+     ngx_fd_t    fd;       /* 发送给对方的句柄 */
 } ngx_channel_t;
 
 

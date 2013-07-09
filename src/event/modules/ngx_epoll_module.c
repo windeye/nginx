@@ -385,8 +385,8 @@ ngx_epoll_add_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags)
 {
     int                  op;
     uint32_t             events, prev;
-    ngx_event_t         *e;
-    ngx_connection_t    *c;
+    ngx_event_t          *e;
+    ngx_connection_t     *c;
     struct epoll_event   ee;
 
     c = ev->data;
@@ -417,6 +417,7 @@ ngx_epoll_add_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags)
     }
 
     ee.events = events | (uint32_t) flags;
+    /* 设置connect指针的最后一位为ev->instance */
     ee.data.ptr = (void *) ((uintptr_t) c | ev->instance);
 
     ngx_log_debug3(NGX_LOG_DEBUG_EVENT, ev->log, 0,
@@ -613,6 +614,7 @@ ngx_epoll_process_events(ngx_cycle_t *cycle, ngx_msec_t timer, ngx_uint_t flags)
     ngx_mutex_lock(ngx_posted_events_mutex);
 
     for (i = 0; i < events; i++) {
+        /* 先从epoll添加事件时传递的数据中取出connect的地址。 */
         c = event_list[i].data.ptr;
 
         instance = (uintptr_t) c & 1;

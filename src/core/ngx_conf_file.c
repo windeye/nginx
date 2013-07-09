@@ -345,6 +345,7 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
 
             if (!(cmd->type & NGX_CONF_ANY)) {
 
+                /* 非ANY的配置，判断参数个数是否合法 */
                 if (cmd->type & NGX_CONF_FLAG) {
 
                     if (cf->args->nelts != 2) {
@@ -375,14 +376,28 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
 
             /* set up the directive's configuration context */
 
+            /* 核心的部分 */
             conf = NULL;
 
+            /* 
+             * 一般来说DIRECT_CONF和MAIN_CONF是同时使用的，也就是有第一个就有第二个。
+             * DIRECT_CONF顾名思义，就是说直接存取CONF，也就是说进入命令解析函数的同
+             * 时，CONF已经创建好了，只需要直接使用就行了(也就是会有create_conf回调）。
+             * 而Main_conf就是说最顶层的conf，比如HTTP/EVENT/PID等等，可以看到都属
+             * 于CORE模块。而NGX_HTTP_XXX就是所有HTTP模块的子模块.
+             *
+             * 我们还记得最开始ctx是包含了所有core模块的conf(create_conf回调)
+             * ,因此这里取出对应的模块conf. 
+             */
             if (cmd->type & NGX_DIRECT_CONF) {
                 conf = ((void **) cf->ctx)[ngx_modules[i]->index];
 
+            /* 如果不是DIRECT_CONF并且是MAIN，则说明我们需要在配置中创建
+             * 自己模块的上下文(也就是需要进入二级模块) */
             } else if (cmd->type & NGX_MAIN_CONF) {
                 conf = &(((void **) cf->ctx)[ngx_modules[i]->index]);
 
+            /* 否则进入二级模块处理。 */
             } else if (cf->ctx) {
                 confp = *(void **) ((char *) cf->ctx + cmd->conf);
 
@@ -560,7 +575,7 @@ ngx_conf_read_token(ngx_conf_t *cf)
             continue;
         }
 
-        /* 需要空格 */
+        /* 需要空格，在'和"内有效 */
         if (need_space) {
             if (ch == ' ' || ch == '\t' || ch == CR || ch == LF) {
                 last_space = 1;

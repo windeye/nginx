@@ -678,6 +678,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
     if (ngx_event_flags & NGX_USE_FD_EVENT) {
         struct rlimit  rlmt;
 
+        /* 系统资源控制 */
         if (getrlimit(RLIMIT_NOFILE, &rlmt) == -1) {
             ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
                           "getrlimit(RLIMIT_NOFILE) failed");
@@ -695,6 +696,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 
 #endif
 
+    /* connections 与读写事件结构体的大小相同，通过相同的下标一一对应 */
     cycle->connections =
         ngx_alloc(sizeof(ngx_connection_t) * cycle->connection_n, cycle->log);
     if (cycle->connections == NULL) {
@@ -736,7 +738,8 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 
     i = cycle->connection_n;
     next = NULL;
-
+ 
+    /* 现在data充当一个链表的指针，后面还会担当其他角色 */
     do {
         i--;
 
@@ -838,8 +841,14 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 
 #else
 
+        /* 设置listen句柄的callback,这个回调里面会accept，然后进行后续处理 */
         rev->handler = ngx_event_accept;
 
+        /* 这里比较关键的就是如果使用了ngx_use_accept_mutex，则现在不会将事件
+         * 加入到epoll中，而是等到在ngx_process_events_and_timers中将句柄加入，
+         * 这是因为nginx为了防止惊群，采取了串行化处理accpet，也就是同时只有一
+         * 个listen句柄会休眠在epoll_wait上等待连接。 
+         * */
         if (ngx_use_accept_mutex) {
             continue;
         }

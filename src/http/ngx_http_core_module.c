@@ -2992,6 +2992,9 @@ ngx_http_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
 
     cmcf = ctx->main_conf[ngx_http_core_module.ctx_index];
 
+    /* 保存所有的servers，可以看到是保存在main中的。这样子最后在
+     * HTTP main中就可以取到这个srv conf. 
+     */
     cscfp = ngx_array_push(&cmcf->servers);
     if (cscfp == NULL) {
         return NGX_CONF_ERROR;
