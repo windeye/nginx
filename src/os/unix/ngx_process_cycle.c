@@ -785,6 +785,7 @@ ngx_worker_process_cycle(ngx_cycle_t *cycle, void *data)
     }
 #endif
 
+    /* worker 工作进程 */
     for ( ;; ) {
 
         if (ngx_exiting) {
@@ -811,8 +812,10 @@ ngx_worker_process_cycle(ngx_cycle_t *cycle, void *data)
 
         ngx_log_debug0(NGX_LOG_DEBUG_EVENT, cycle->log, 0, "worker cycle");
 
+        /* 处理事件和定时器,事件处理的核心啦！ */
         ngx_process_events_and_timers(cycle);
 
+        /* 处理各种退出，或者repoen(repoen log file)的事件 */
         if (ngx_terminate) {
             ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0, "exiting");
 
@@ -859,6 +862,10 @@ ngx_worker_process_init(ngx_cycle_t *cycle, ngx_int_t worker)
     ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
 
     if (worker >= 0 && ccf->priority != 0) {
+        /* 可用来设置进程、进程组和用户的进程执行优先权。PRIO_PROCESS who为进程识别码
+         * 参数prio介于-20至20之间。代表进程执行优先权，数值越低代表有较高的优先次序，
+         * 执行会较频繁。此优先权默认是0，而只有超级用户（root）允许降低此值。
+         */
         if (setpriority(PRIO_PROCESS, 0, ccf->priority) == -1) {
             ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
                           "setpriority(%d) failed", ccf->priority);
@@ -869,6 +876,7 @@ ngx_worker_process_init(ngx_cycle_t *cycle, ngx_int_t worker)
         rlmt.rlim_cur = (rlim_t) ccf->rlimit_nofile;
         rlmt.rlim_max = (rlim_t) ccf->rlimit_nofile;
 
+        /* 每个进程能够打开的最多文件数。 */
         if (setrlimit(RLIMIT_NOFILE, &rlmt) == -1) {
             ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
                           "setrlimit(RLIMIT_NOFILE, %i) failed",
@@ -880,6 +888,7 @@ ngx_worker_process_init(ngx_cycle_t *cycle, ngx_int_t worker)
         rlmt.rlim_cur = (rlim_t) ccf->rlimit_core;
         rlmt.rlim_max = (rlim_t) ccf->rlimit_core;
 
+        /* 设定最大的core文件，当值为0时将禁止core文件,非0时将设定产生的最大core文件大小为设定的值 */
         if (setrlimit(RLIMIT_CORE, &rlmt) == -1) {
             ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
                           "setrlimit(RLIMIT_CORE, %O) failed",
@@ -892,6 +901,7 @@ ngx_worker_process_init(ngx_cycle_t *cycle, ngx_int_t worker)
         rlmt.rlim_cur = (rlim_t) ccf->rlimit_sigpending;
         rlmt.rlim_max = (rlim_t) ccf->rlimit_sigpending;
 
+        /* 设置用户可用的最大挂起信号数 */
         if (setrlimit(RLIMIT_SIGPENDING, &rlmt) == -1) {
             ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
                           "setrlimit(RLIMIT_SIGPENDING, %i) failed",
@@ -900,7 +910,11 @@ ngx_worker_process_init(ngx_cycle_t *cycle, ngx_int_t worker)
     }
 #endif
 
+    /* 取得有效的用户识别码geteuid()用来取得执行目前进程有效的用户识别码。
+     * 有效的用户识别码用来决定进程执行的权限，root的euid值为0. 
+     */
     if (geteuid() == 0) {
+        /* 设置组的id使得进程可以被其他用户执行 */
         if (setgid(ccf->group) == -1) {
             ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno,
                           "setgid(%d) failed", ccf->group);
@@ -966,6 +980,7 @@ ngx_worker_process_init(ngx_cycle_t *cycle, ngx_int_t worker)
         ls[i].previous = NULL;
     }
 
+    /* 调用所有模块的init_process */
     for (i = 0; ngx_modules[i]; i++) {
         if (ngx_modules[i]->init_process) {
             if (ngx_modules[i]->init_process(cycle) == NGX_ERROR) {

@@ -287,6 +287,10 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     /* create location trees */
 
+    /* 读取http配置后，所有server都被保存在http core模块的main配置中的
+     * servers数组中，而每个server里面的location都被按配置中出现的顺序
+     * 保存在http core模块的loc配置的locations队列中，
+     */
     for (s = 0; s < cmcf->servers.nelts; s++) {
 
         clcf = cscfp[s]->ctx->loc_conf[ngx_http_core_module.ctx_index];
@@ -698,6 +702,10 @@ ngx_http_init_locations(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
         return NGX_OK;
     }
 
+      /* 按照类型排序location，排序完后的队列：  (exact_match 或 inclusive)
+       * (排序好的，如果某个exact_match名字和inclusive location相同，exact_match排在前面) 
+       * |  regex（未排序）| named(排序好的)  |  noname（未排序）
+       */  
     ngx_queue_sort(locations, ngx_http_cmp_locations);
 
     named = NULL;
@@ -715,6 +723,9 @@ ngx_http_init_locations(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
 
         clcf = lq->exact ? lq->exact : lq->inclusive;
 
+        /* 由于可能存在nested location，也就是location里面嵌套的location，
+         * 这里需要递归的处理一下当前location下面的nested location 
+         */ 
         if (ngx_http_init_locations(cf, NULL, clcf) != NGX_OK) {
             return NGX_ERROR;
         }
@@ -752,6 +763,7 @@ ngx_http_init_locations(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
         ngx_queue_split(locations, q, &tail);
     }
 
+     /* 如果有named location，将它们保存在所属server的named_locations数组中 */  
     if (named) {
         clcfp = ngx_palloc(cf->pool,
                            (n + 1) * sizeof(ngx_http_core_loc_conf_t **));
@@ -777,6 +789,11 @@ ngx_http_init_locations(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
 
 #if (NGX_PCRE)
 
+    /* 如果有正则匹配location，将它们保存在所属server的http core模块的
+     * loc配置的regex_locations数组中， 这里和named location保存位置不
+     * 同的原因是由于named location只能存在server里面，而regex
+     * location可以作为nested location 
+     */  
     if (regex) {
 
         clcfp = ngx_palloc(cf->pool,
@@ -838,12 +855,22 @@ ngx_http_init_static_location_trees(ngx_conf_t *cf,
         }
     }
 
+    /* 
+     * join队列中名字相同的inclusive和exact类型location，也就是如果某个exact_match
+     * 的location名字和普通字符串匹配的location名字相同的话， 就将它们合到一个节点
+     * 中，分别保存在节点的exact和inclusive下，这一步的目的实际是去重，为后面的建立
+     * 排序树做准备。
+     */  
     if (ngx_http_join_exact_locations(cf, locations) != NGX_OK) {
         return NGX_ERROR;
     }
 
+     /* 递归每个location节点，得到当前节点的名字为其前缀的location的列表，保存在当
+      * 前节点的list字段下
+      * */ 
     ngx_http_create_locations_list(locations, ngx_queue_head(locations));
 
+    /* 递归简历三叉排序树 */
     pclcf->static_locations = ngx_http_create_locations_tree(cf, locations, 0);
     if (pclcf->static_locations == NULL) {
         return NGX_ERROR;

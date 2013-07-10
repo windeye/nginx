@@ -205,12 +205,25 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
     ngx_uint_t  flags;
     ngx_msec_t  timer, delta;
 
+    /* 定时器的粒度，如果设置了timer_resolution则ngx_timer_resolution不为0，
+     * nginx的时间缓存精确到ngx_timer_resolution毫秒，实现方法是在event模块
+     * 的初始化函数ngx_event_process_init（）中调用了setitimer（）函数，它每
+     * 隔ngx_timer_resolution毫秒会产生一个SIGALRM信号，这个信号的处理函数
+     * ngx_timer_signal_handler会将ngx_event_timer_alarm置为1，这样在真正处理
+     * 事件的ngx_epoll_process_events会根据这个值判断是否更新事件。
+     */
     if (ngx_timer_resolution) {
         timer = NGX_TIMER_INFINITE;
         flags = 0;
 
     } else {
+        /*
+         * 如果为0，则没有定时器出发更新，则通过NGX_UPDATE_TIME这个标志位，worker
+         * 在每次循环处理事件的时候进行更新，而master则捕捉到并处理完一个信号返回
+         * 的时候会更新时间缓存。
+         */
         timer = ngx_event_find_timer();
+        /* 设置更新时间缓存的标志位 */
         flags = NGX_UPDATE_TIME;
 
 #if (NGX_THREADS)
@@ -223,6 +236,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
     }
 
     if (ngx_use_accept_mutex) {
+        /* 该进程现在不能去竞争accept_mutex */
         if (ngx_accept_disabled > 0) {
             ngx_accept_disabled--;
 
@@ -246,6 +260,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
 
     delta = ngx_current_msec;
 
+    /* 处理事件，epoll = ngx_epoll_process_events */
     (void) ngx_process_events(cycle, timer, flags);
 
     delta = ngx_current_msec - delta;
@@ -253,6 +268,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
     ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
                    "timer delta: %M", delta);
 
+    /* 处理放到post队列里要延迟处理的请求 */
     if (ngx_posted_accept_events) {
         ngx_event_process_posted(cycle, &ngx_posted_accept_events);
     }

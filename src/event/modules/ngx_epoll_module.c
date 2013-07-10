@@ -579,6 +579,7 @@ ngx_epoll_process_events(ngx_cycle_t *cycle, ngx_msec_t timer, ngx_uint_t flags)
 
     err = (events == -1) ? ngx_errno : 0;
 
+    /* 更新worker的时间缓存 */
     if (flags & NGX_UPDATE_TIME || ngx_event_timer_alarm) {
         ngx_time_update();
     }

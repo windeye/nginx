@@ -200,8 +200,10 @@ ngx_spawn_process(ngx_cycle_t *cycle, ngx_spawn_proc_pt proc, void *data,
         ngx_close_channel(ngx_processes[s].channel, cycle->log);
         return NGX_INVALID_PID;
 
+    /* pid == 0, child process */
     case 0:
         ngx_pid = ngx_getpid();
+        /* proc = ngx_worker_process_cycle, data is index of worker */
         proc(cycle, data);
         break;
 

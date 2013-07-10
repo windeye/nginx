@@ -3112,13 +3112,13 @@ ngx_http_core_location(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
             clcf->name = *name;
             clcf->noregex = 1;
 
-        } else if (len == 1 && mod[0] == '~') {
+        } else if (len == 1 && mod[0] == '~') { /*大小写敏感*/
 
             if (ngx_http_core_regex_location(cf, clcf, name, 0) != NGX_OK) {
                 return NGX_CONF_ERROR;
             }
 
-        } else if (len == 2 && mod[0] == '~' && mod[1] == '*') {
+        } else if (len == 2 && mod[0] == '~' && mod[1] == '*') {  /*大小写不敏感*/
 
             if (ngx_http_core_regex_location(cf, clcf, name, 1) != NGX_OK) {
                 return NGX_CONF_ERROR;
@@ -3134,6 +3134,7 @@ ngx_http_core_location(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
 
         name = &value[1];
 
+        /* 等号和路径中没有空格 */
         if (name->data[0] == '=') {
 
             clcf->name.len = name->len - 1;
