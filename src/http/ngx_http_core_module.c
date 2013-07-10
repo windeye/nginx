@@ -2986,13 +2986,14 @@ ngx_http_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
 
     /* the server configuration context */
 
+		/* 第一个http module */
     cscf = ctx->srv_conf[ngx_http_core_module.ctx_index];
     cscf->ctx = ctx;
 
 
     cmcf = ctx->main_conf[ngx_http_core_module.ctx_index];
 
-    /* 保存所有的servers，可以看到是保存在main中的。这样子最后在
+    /* 保存所有的server生成的配置，可以看到是保存在main中的。这样子最后在
      * HTTP main中就可以取到这个srv conf. 
      */
     cscfp = ngx_array_push(&cmcf->servers);
@@ -3091,6 +3092,7 @@ ngx_http_core_location(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
         }
     }
 
+		/* 只在ngx_http_core_module中保存location配置 */
     clcf = ctx->loc_conf[ngx_http_core_module.ctx_index];
     clcf->loc_conf = ctx->loc_conf;
 
@@ -3227,6 +3229,9 @@ ngx_http_core_location(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
         }
     }
 
+		/* 将这个location放到双向队列,放到server的loc_conf[0]的双向队列locations中，
+			 这个队列可以将该server下的所有location关联起来。 
+		 */
     if (ngx_http_add_location(cf, &pclcf->locations, clcf) != NGX_OK) {
         return NGX_CONF_ERROR;
     }

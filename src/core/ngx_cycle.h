@@ -35,6 +35,9 @@ struct ngx_shm_zone_s {
 
 
 struct ngx_cycle_s {
+	  /* 第七的指针由ngx_http_module使用,index为6,这个指针设置为指向
+		 * 解析http{}是生成的ngx_http_conf_ctx结构体
+		 */
     void                  ****conf_ctx;
     ngx_pool_t               *pool;
 
