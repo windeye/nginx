@@ -143,21 +143,27 @@ ngx_http_parse_request_line(ngx_http_request_t *r, ngx_buf_t *b)
 
         /* HTTP methods: GET, HEAD, POST */
         case sw_start:
+            /* 保存request开始的地址，也是method开始的地址 */
             r->request_start = p;
 
+            /* 回车或者换行就直接返回 */
             if (ch == CR || ch == LF) {
                 break;
             }
 
+            /* 不是A到Z的字母(大小写敏感的),并且不是_则返回错误 */
             if ((ch < 'A' || ch > 'Z') && ch != '_') {
                 return NGX_HTTP_PARSE_INVALID_METHOD;
             }
 
+            /* 到达这里说明下一步要改解析方法了。因此下一个状态就是method */
             state = sw_method;
             break;
 
         case sw_method:
+            /* 如果读到空格则说明Method已经读完，下一步就可以解析request-URL，此时我们就能得到请求方法了。 */
             if (ch == ' ') {
+                /* 记录Method结束的地址 */
                 r->method_end = p - 1;
                 m = r->request_start;
 

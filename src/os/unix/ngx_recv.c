@@ -138,6 +138,7 @@ ngx_unix_recv(ngx_connection_t *c, u_char *buf, size_t size)
         ngx_log_debug3(NGX_LOG_DEBUG_EVENT, c->log, 0,
                        "recv: fd:%d %d of %d", c->fd, n, size);
 
+        /* n=0标示连接已经关闭 */
         if (n == 0) {
             rev->ready = 0;
             rev->eof = 1;
@@ -145,6 +146,8 @@ ngx_unix_recv(ngx_connection_t *c, u_char *buf, size_t size)
 
         } else if (n > 0) {
 
+            /* 没有使用GREEDY_EVENT模式,实际是使用了的，在epoll init时设置
+             * 了这个值。*/
             if ((size_t) n < size
                 && !(ngx_event_flags & NGX_USE_GREEDY_EVENT))
             {

@@ -59,7 +59,13 @@ ngx_event_accept(ngx_event_t *ev)
     do {
         socklen = NGX_SOCKADDRLEN;
 
+        /* 接受事件句柄,accept4可以设置使用非阻塞，一般我们在accept后，
+         * 会对新的client fd做一些设置，如通过fcnt设置FD_CLOEXEC或者
+         * O_NONBLOCK等等，在accept4中的最后一个参数就是用来设置这两个
+         * 参数的。 
+         */
 #if (NGX_HAVE_ACCEPT4)
+        /* sa中存入的是接受的连接对端的地址信息 */
         if (use_accept4) {
             s = accept4(lc->fd, (struct sockaddr *) sa, &socklen,
                         SOCK_NONBLOCK);
@@ -73,6 +79,7 @@ ngx_event_accept(ngx_event_t *ev)
         if (s == -1) {
             err = ngx_socket_errno;
 
+            /* 处理各种异常， */
             if (err == NGX_EAGAIN) {
                 ngx_log_debug0(NGX_LOG_DEBUG_EVENT, ev->log, err,
                                "accept() not ready");
@@ -81,9 +88,11 @@ ngx_event_accept(ngx_event_t *ev)
 
             level = NGX_LOG_ALERT;
 
+            /* 软件导致的连接取消 */
             if (err == NGX_ECONNABORTED) {
                 level = NGX_LOG_ERR;
 
+            /* 每个进程打开的文件数目达到了最大值 */
             } else if (err == NGX_EMFILE || err == NGX_ENFILE) {
                 level = NGX_LOG_CRIT;
             }
@@ -138,9 +147,11 @@ ngx_event_accept(ngx_event_t *ev)
         (void) ngx_atomic_fetch_add(ngx_stat_accepted, 1);
 #endif
 
+        /* 如果空闲连接小于连接池的1/8就停止accept */
         ngx_accept_disabled = ngx_cycle->connection_n / 8
                               - ngx_cycle->free_connection_n;
 
+        /* 接下来就是从连接池取得连接，然后创建连接里面包含的数据结构。*/
         c = ngx_get_connection(s, ev->log);
 
         if (c == NULL) {
@@ -178,6 +189,7 @@ ngx_event_accept(ngx_event_t *ev)
 
         /* set a blocking mode for aio and non-blocking mode for others */
 
+        /* 用的是EPOLL，设置为非阻塞,s是accept返回的socket句柄 */
         if (ngx_inherited_nonblocking) {
             if (ngx_event_flags & NGX_USE_AIO_EVENT) {
                 if (ngx_blocking(s) == -1) {
@@ -201,6 +213,7 @@ ngx_event_accept(ngx_event_t *ev)
 
         *log = ls->log;
 
+        /* 设置读取的回调，这里依赖于操作系统。 */
         c->recv = ngx_recv;
         c->send = ngx_send;
         c->recv_chain = ngx_recv_chain;
@@ -209,6 +222,7 @@ ngx_event_accept(ngx_event_t *ev)
         c->log = log;
         c->pool->log = log;
 
+        /* 设置connection的ip地址 */
         c->socklen = socklen;
         c->listening = ls;
         c->local_sockaddr = ls->sockaddr;
@@ -344,6 +358,7 @@ ngx_event_accept(ngx_event_t *ev)
         ngx_log_debug3(NGX_LOG_DEBUG_EVENT, log, 0,
                        "*%d accept: %V fd:%d", c->number, &c->addr_text, s);
 
+        /* 如果不是epoll的话，就调用add_conn */
         if (ngx_add_conn && (ngx_event_flags & NGX_USE_EPOLL_EVENT) == 0) {
             if (ngx_add_conn(c) == NGX_ERROR) {
                 ngx_close_accepted_connection(c);
@@ -354,6 +369,10 @@ ngx_event_accept(ngx_event_t *ev)
         log->data = NULL;
         log->handler = NULL;
 
+        /* 如果是epoll的话，这个回调会干什么？去把这个connection
+         * 加入到事件驱动集吗？handler是处理accept的connection的回调。
+         * handler = ngx_http_init_connection
+         */
         ls->handler(c);
 
         if (ngx_event_flags & NGX_USE_KQUEUE_EVENT) {

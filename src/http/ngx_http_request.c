@@ -212,6 +212,7 @@ ngx_http_init_connection(ngx_connection_t *c)
         return;
     }
 
+    /* 在连接池里时，这个data是连接下一个connection_t的指针 */
     c->data = hc;
 
     /* find the server configuration for the address:port */
@@ -308,6 +309,7 @@ ngx_http_init_connection(ngx_connection_t *c)
 
     c->log_error = NGX_ERROR_INFO;
 
+    /* 设置读写handler. */
     rev = c->read;
     rev->handler = ngx_http_wait_request_handler;
     c->write->handler = ngx_http_empty_handler;
@@ -346,6 +348,10 @@ ngx_http_init_connection(ngx_connection_t *c)
     if (rev->ready) {
         /* the deferred accept(), rtsig, aio, iocp */
 
+        /* 使用了defered accept，accept时已经有数据可以读，但如果用了accept mutex，
+         * 如果在这里处理读的请求，就会比较耗时，所以先放到延时处理队列就返回了，
+         * 之后再处理队列里的事件
+         */
         if (ngx_use_accept_mutex) {
             ngx_post_event(rev, &ngx_posted_events);
             return;
@@ -355,9 +361,12 @@ ngx_http_init_connection(ngx_connection_t *c)
         return;
     }
 
+    /* 如果没有可读事件，则添加定时器，超时后这个连接就关闭？ */
     ngx_add_timer(rev, c->listening->post_accept_timeout);
+    /* reuseable值是1，添加到reuseable connection队列 */
     ngx_reusable_connection(c, 1);
 
+    /* 将事件挂载到事件处理器中,epoll的add操作 */
     if (ngx_handle_read_event(rev, 0) != NGX_OK) {
         ngx_http_close_connection(c);
         return;
@@ -390,6 +399,7 @@ ngx_http_wait_request_handler(ngx_event_t *rev)
         return;
     }
 
+    /* data 指向ngx_http_connection_t*/
     hc = c->data;
     cscf = ngx_http_get_module_srv_conf(hc->conf_ctx, ngx_http_core_module);
 
@@ -419,6 +429,7 @@ ngx_http_wait_request_handler(ngx_event_t *rev)
         b->end = b->last + size;
     }
 
+    /*nginx 封装的读函数,ngx_unix_recv,在ngx_recv.c中 */
     n = c->recv(c, b->last, size);
 
     if (n == NGX_AGAIN) {
@@ -878,6 +889,7 @@ ngx_http_process_request_line(ngx_event_t *rev)
     for ( ;; ) {
 
         if (rc == NGX_AGAIN) {
+            /* 读取request头部 */
             n = ngx_http_read_request_header(r);
 
             if (n == NGX_AGAIN || n == NGX_ERROR) {
@@ -1316,6 +1328,7 @@ ngx_http_read_request_header(ngx_http_request_t *r)
 
     n = r->header_in->last - r->header_in->pos;
 
+    /* 之前已经recv过了，所以这里就直接返回了 */
     if (n > 0) {
         return n;
     }
