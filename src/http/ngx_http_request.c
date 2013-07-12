@@ -897,6 +897,7 @@ ngx_http_process_request_line(ngx_event_t *rev)
             }
         }
 
+        /* 解析HTTP协议的第一行 */
         rc = ngx_http_parse_request_line(r, r->header_in);
 
         if (rc == NGX_OK) {
@@ -917,6 +918,7 @@ ngx_http_process_request_line(ngx_event_t *rev)
                 r->http_protocol.len = r->request_end - r->http_protocol.data;
             }
 
+            /* uri以及complex_uri的解析 */
             if (ngx_http_process_request_uri(r) != NGX_OK) {
                 return;
             }
@@ -926,6 +928,7 @@ ngx_http_process_request_line(ngx_event_t *rev)
                 host.len = r->host_end - r->host_start;
                 host.data = r->host_start;
 
+                /* 验证host格式的有效性 */
                 rc = ngx_http_validate_host(&host, r->pool, 0);
 
                 if (rc == NGX_DECLINED) {
@@ -947,6 +950,7 @@ ngx_http_process_request_line(ngx_event_t *rev)
                 r->headers_in.server = host;
             }
 
+            /* 版本号小于1.0，应该不会出现，所以很少会处理这一步*/
             if (r->http_version < NGX_HTTP_VERSION_10) {
 
                 if (r->headers_in.server.len == 0
@@ -2652,6 +2656,7 @@ ngx_http_block_reading(ngx_http_request_t *r)
 
     /* aio does not call this handler */
 
+    /*  这个函数比较怪，*/
     if ((ngx_event_flags & NGX_USE_LEVEL_EVENT)
         && r->connection->read->active)
     {
