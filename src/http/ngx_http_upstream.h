@@ -275,19 +275,30 @@ struct ngx_http_upstream_s {
 
     ngx_event_pipe_t                *pipe;
 
+		/* 在实现create_request方法时需要设置它，该参数决定发送什么样的请求给上游服务器 */
     ngx_chain_t                     *request_bufs;
 
     ngx_output_chain_ctx_t           output;
     ngx_chain_writer_ctx_t           writer;
 
+		/* upstream访问时的所有限制性参数 */
     ngx_http_upstream_conf_t        *conf;
 
     ngx_http_upstream_headers_in_t   headers_in;
 
+		/*  上游服务器地址 */
     ngx_http_upstream_resolved_t    *resolved;
 
     ngx_buf_t                        from_client;
 
+		/* buffer存储接收自上游服务器发送来的响应，由于它会被复用，所以有以下多种含义：
+		 * 1）在process_header解析上游响应包头时，buffer保存完整的响应包头，
+		 * 2）当下面的buffering为1时，且此时upstream是向下游转发上游的包体时，buffer
+		 *    没有意义
+		 * 3）当buffering为0时，buffer会用于反复的接收上游的包体，进而向下游转发
+		 * 4）当upstream不用于转发上游包体时，buffer会被用来反复的接收上游的包体，HTTP
+		 *    模块实现的input_filter方法需要关注它
+		 */
     ngx_buf_t                        buffer;
     off_t                            length;
 
@@ -302,10 +313,16 @@ struct ngx_http_upstream_s {
 #if (NGX_HTTP_CACHE)
     ngx_int_t                      (*create_key)(ngx_http_request_t *r);
 #endif
+		/* 构造发往上游服务器的请求内容 */
     ngx_int_t                      (*create_request)(ngx_http_request_t *r);
     ngx_int_t                      (*reinit_request)(ngx_http_request_t *r);
+		/* 收到上游服务器的响应后就会回调process_header函数，如果它返回NGX_AGAIN，
+		 * 说明还没接收到完整的包头，对于本次uostream来说，再次接收到上游服务器发
+		 * 来的TCP流时，要继续调用该好书，知道process_header返回非NGX_AGAIN为止。
+		 */
     ngx_int_t                      (*process_header)(ngx_http_request_t *r);
     void                           (*abort_request)(ngx_http_request_t *r);
+		/* 销毁请求时调用 */
     void                           (*finalize_request)(ngx_http_request_t *r,
                                          ngx_int_t rc);
     ngx_int_t                      (*rewrite_redirect)(ngx_http_request_t *r,
@@ -331,6 +348,11 @@ struct ngx_http_upstream_s {
     unsigned                         cache_status:3;
 #endif
 
+		/*  在向客户端转发上游服务器的包体时才有用，为1时，表示使用多个缓冲区以及
+		 *  磁盘文件来转发上游的响应包体，当nginx与上游的网速远大于nginx与下游客户
+		 *  端的网速时，让nginx开辟更多的内存甚至磁盘文件来缓存上游的包体，这可以
+		 *  减轻上游服务器并发压力，为0时，表示只使用上面的一个固定buffer转发响应。
+		 */
     unsigned                         buffering:1;
     unsigned                         keepalive:1;
     unsigned                         upgrade:1;
