@@ -451,10 +451,15 @@ ngx_http_upstream_init(ngx_http_request_t *r)
     }
 #endif
 
+    /* 先删除这个连接的读定时器，因为下面开始与upstream通信？ */
     if (c->read->timer_set) {
         ngx_del_timer(c->read);
     }
 
+    /* 如果是边缘触发，则挂载写事件,这里提前挂载写事件，因为之后要
+     * 走upstream的流程，以免connect upstream失败，,则不会进入
+     * ngx_http_finalize_request以挂载写hook.
+     */
     if (ngx_event_flags & NGX_USE_CLEAR_EVENT) {
 
         if (!c->write->active) {
@@ -467,6 +472,7 @@ ngx_http_upstream_init(ngx_http_request_t *r)
         }
     }
 
+    /* 进入upstream的初始化 */
     ngx_http_upstream_init_request(r);
 }
 
