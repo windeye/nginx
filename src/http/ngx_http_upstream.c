@@ -431,6 +431,9 @@ ngx_http_upstream_create(ngx_http_request_t *r)
 }
 
 
+/*
+ * 如果在某个模块内想使用upstream机制，则只需调用这个init函数
+ */
 void
 ngx_http_upstream_init(ngx_http_request_t *r)
 {

@@ -131,6 +131,7 @@ typedef struct {
 typedef struct {
     ngx_http_upstream_srv_conf_t    *upstream;
 
+		/* 与上游服务器的连接，发送，接收超时时间 */
     ngx_msec_t                       connect_timeout;
     ngx_msec_t                       send_timeout;
     ngx_msec_t                       read_timeout;
@@ -253,9 +254,11 @@ typedef struct {
     in_port_t                        port;
     ngx_uint_t                       no_port; /* unsigned no_port:1 */
 
+		/* 地址个数 */
     ngx_uint_t                       naddrs;
     in_addr_t                       *addrs;
 
+		/* 设置上游服务器地址 */
     struct sockaddr                 *sockaddr;
     socklen_t                        socklen;
 
