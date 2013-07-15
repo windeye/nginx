@@ -523,7 +523,14 @@ ngx_http_upstream_init_request(ngx_http_request_t *r)
 
     u->store = (u->conf->store || u->conf->store_lengths);
 
+    /* 不使用cache，不是post_action(POST请求？)，ignore_client_abort为
+     * false，要设置检查连接是否关闭的回调。 
+     */
     if (!u->store && !r->post_action && !u->conf->ignore_client_abort) {
+        /* 
+         * 调用MSG_PEEK去获取一个字节大小的数据，但MSG_PEEK不会将这个数据从
+         * TCP的缓存中删除，下次读还能获取到。 
+         */
         r->read_event_handler = ngx_http_upstream_rd_check_broken_connection;
         r->write_event_handler = ngx_http_upstream_wr_check_broken_connection;
     }
@@ -537,6 +544,7 @@ ngx_http_upstream_init_request(ngx_http_request_t *r)
         return;
     }
 
+    /* 初始化upstream的一些属性 */
     u->peer.local = ngx_http_upstream_get_local(r, u->conf->local);
 
     clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
@@ -1015,7 +1023,9 @@ ngx_http_upstream_check_broken_connection(ngx_http_request_t *r,
     c = r->connection;
     u = r->upstream;
 
+    /* error不为0说明连接已经有错误 */
     if (c->error) {
+        /* 如果是水平触发就删除这个连接的事件 */
         if ((ngx_event_flags & NGX_USE_LEVEL_EVENT) && ev->active) {
 
             event = ev->write ? NGX_WRITE_EVENT : NGX_READ_EVENT;
@@ -1079,6 +1089,7 @@ ngx_http_upstream_check_broken_connection(ngx_http_request_t *r,
 
 #endif
 
+    /* 尝试读取一个字节，判断连接是否断开 */
     n = recv(c->fd, buf, 1, MSG_PEEK);
 
     err = ngx_socket_errno;
@@ -1086,10 +1097,12 @@ ngx_http_upstream_check_broken_connection(ngx_http_request_t *r,
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ev->log, err,
                    "http upstream recv(): %d", n);
 
+    /* 注意，err=NGX_EAGAIN时连接也是正常的 */
     if (ev->write && (n >= 0 || err == NGX_EAGAIN)) {
         return;
     }
 
+    /* 水平触发则删除事件 */
     if ((ngx_event_flags & NGX_USE_LEVEL_EVENT) && ev->active) {
 
         event = ev->write ? NGX_WRITE_EVENT : NGX_READ_EVENT;
@@ -1101,6 +1114,7 @@ ngx_http_upstream_check_broken_connection(ngx_http_request_t *r,
         }
     }
 
+    /* 如果还有数据，则直接返回 */
     if (n > 0) {
         return;
     }
@@ -1116,9 +1130,12 @@ ngx_http_upstream_check_broken_connection(ngx_http_request_t *r,
         err = 0;
     }
 
+    /* 到达这里说明有错误产生了 */
     ev->eof = 1;
+    /* 设置错误，可以看到这个值在函数一开始有检测。 */
     c->error = 1;
 
+    /* 如果没有使用缓存则结束请求的处理 */
     if (!u->cacheable && u->peer.connection) {
         ngx_log_error(NGX_LOG_INFO, ev->log, err,
                       "client prematurely closed connection, "
@@ -1131,6 +1148,7 @@ ngx_http_upstream_check_broken_connection(ngx_http_request_t *r,
     ngx_log_error(NGX_LOG_INFO, ev->log, err,
                   "client prematurely closed connection");
 
+    /*  如果没有cache，并且upstream还在继续处理，则忽略错误。 */
     if (u->peer.connection == NULL) {
         ngx_http_upstream_finalize_request(r, u,
                                            NGX_HTTP_CLIENT_CLOSED_REQUEST);
@@ -1166,6 +1184,7 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
     u->state->response_sec = tp->sec;
     u->state->response_msec = tp->msec;
 
+    /* ngx_event_connect_peer开始连接后端upstream.并且对返回值进行处理. */
     rc = ngx_event_connect_peer(&u->peer);
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
@@ -1177,6 +1196,7 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
         return;
     }
 
+    /* 这个是很关键的一个结构peer，后面会详细分析 */
     u->state->peer = u->peer.name;
 
     if (rc == NGX_BUSY) {
@@ -1191,11 +1211,16 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
     }
 
     /* rc == NGX_OK || rc == NGX_AGAIN */
-
+    /* 当返回值为NGX_OK或者NGX_AGAIN的话，就说明连接成功或者暂时异步的连接
+     * 还没成功，所以需要挂载upstream端的回调函数.这里要注意就是NGX_AGAIN的
+     * 情况，因为是异步的connect，所以可能会连接不成功。所以如果返回NGX_AGAIN
+     * 的话，需要挂载写函数.
+     */
     c = u->peer.connection;
 
     c->data = r;
 
+    /* 开始挂载回调函数，一个是读，一个是写。 */
     c->write->handler = ngx_http_upstream_handler;
     c->read->handler = ngx_http_upstream_handler;
 
@@ -1229,6 +1254,9 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
     u->writer.connection = c;
     u->writer.limit = 0;
 
+    /* 对request_body的一些处理以及如果request_sent已经设置，也就是这个upstream
+     * 已经发送过一部分数据了，此时需要重新初始化upstream。
+     */
     if (u->request_sent) {
         if (ngx_http_upstream_reinit(r, u) != NGX_OK) {
             ngx_http_upstream_finalize_request(r, u,
@@ -1237,6 +1265,7 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
         }
     }
 
+    /* 如果包体存在，保存body */
     if (r->request_body
         && r->request_body->buf
         && r->request_body->temp_file
@@ -1254,10 +1283,12 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
             return;
         }
 
+        /* 保存到output中 */
         u->output.free->buf = r->request_body->buf;
         u->output.free->next = NULL;
         u->output.allocated = 1;
 
+        /* 重置request_body */
         r->request_body->buf->pos = r->request_body->buf->start;
         r->request_body->buf->last = r->request_body->buf->start;
         r->request_body->buf->tag = u->output.tag;
@@ -1422,6 +1453,7 @@ ngx_http_upstream_reinit(ngx_http_request_t *r, ngx_http_upstream_t *u)
 }
 
 
+/* 发送数据到后端upstream */
 static void
 ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u)
 {
@@ -1433,6 +1465,7 @@ ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u)
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0,
                    "http upstream send request");
 
+    /* 如果test connect失败，则说明连接失败，于是跳到下一个upstream，然后返回 */
     if (!u->request_sent && ngx_http_upstream_test_connect(c) != NGX_OK) {
         ngx_http_upstream_next(r, u, NGX_HTTP_UPSTREAM_FT_ERROR);
         return;
@@ -1440,6 +1473,11 @@ ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     c->log->action = "sending request to upstream";
 
+    /* 调用ngx_output_chain发送数据
+     * 在ngx_output_chain中会依次调用filter链，可是upstream明显不需要
+     * 调用filter链，那么nginx是怎么做的呢，是这样子的，在upstream的
+     * 初始化的时候，已经将u->output.output_filter改成ngx_chain_writer了 
+     */
     rc = ngx_output_chain(&u->output, u->request_sent ? NULL : u->request_bufs);
 
     u->request_sent = 1;
@@ -1453,6 +1491,7 @@ ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u)
         ngx_del_timer(c->write);
     }
 
+    /* 和request的处理类似，如果again，则说明数据没有发送完毕，此时挂载写事件. */
     if (rc == NGX_AGAIN) {
         ngx_add_timer(c->write, u->conf->send_timeout);
 
@@ -1467,6 +1506,7 @@ ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     /* rc == NGX_OK */
 
+    /* 设置tcp_cork,和前面的keepalive部分的处理类似 */
     if (c->tcp_nopush == NGX_TCP_NOPUSH_SET) {
         if (ngx_tcp_push(c->fd) == NGX_ERROR) {
             ngx_log_error(NGX_LOG_CRIT, c->log, ngx_socket_errno,
@@ -1482,6 +1522,7 @@ ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u)
     ngx_add_timer(c->read, u->conf->read_timeout);
 
 #if 1
+    /* 如果读也可以了，则开始解析头 */
     if (c->read->ready) {
 
         /* post aio operation */
@@ -1570,6 +1611,9 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
     }
 
     if (u->buffer.start == NULL) {
+        /* 分配内存来接收后端的数据，大小为u->conf->buffer_size(fastcgi_buffer_size
+         * 或者proxy_buffer_size),初始大小是页的大小 
+         */
         u->buffer.start = ngx_palloc(r->pool, u->conf->buffer_size);
         if (u->buffer.start == NULL) {
             ngx_http_upstream_finalize_request(r, u,
@@ -1602,6 +1646,7 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
 #endif
     }
 
+    /* 读数据，判断返回值，处理错误，如果一切正常，则调用u->process_header，设置headers相关的域。 */
     for ( ;; ) {
 
         n = c->recv(c, u->buffer.last, u->buffer.end - u->buffer.last);
@@ -1620,16 +1665,19 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
             return;
         }
 
+        /* 如果为0，则说明upstream已经关闭了连接 */
         if (n == 0) {
             ngx_log_error(NGX_LOG_ERR, c->log, 0,
                           "upstream prematurely closed connection");
         }
 
+        /* next干啥用的？尝试连接下一个upstream？ */
         if (n == NGX_ERROR || n == 0) {
             ngx_http_upstream_next(r, u, NGX_HTTP_UPSTREAM_FT_ERROR);
             return;
         }
 
+        /* 读取数据后，更新buffer的位置 */
         u->buffer.last += n;
 
 #if 0
@@ -1638,8 +1686,10 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
         u->peer.cached = 0;
 #endif
 
+        /* 调用process_header回调 */
         rc = u->process_header(r);
 
+        /* 如果返回again，则说明后端的数据发送不完全，此时需要再次读取. */
         if (rc == NGX_AGAIN) {
 
             if (u->buffer.last == u->buffer.end) {
@@ -1883,6 +1933,11 @@ ngx_http_upstream_test_connect(ngx_connection_t *c)
          * Solaris returns -1 and sets errno
          */
 
+        /* 在linux下当非阻塞的connect，然后没有连接完成，如果挂载写事件，
+         * 此时如果写事件上报上来，并不代表连接成功，此时还需要调用getsockopt
+         * 来判断SO_ERROR，如果没有错误才能保证连接成功,因为连接失败时，
+         * socket 描述字既可读又可写。（由于有未决的错误，从而可读又可写)
+         */
         if (getsockopt(c->fd, SOL_SOCKET, SO_ERROR, (void *) &err, &len)
             == -1)
         {

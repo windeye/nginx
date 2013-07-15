@@ -1438,17 +1438,18 @@ ngx_http_fastcgi_process_header(ngx_http_request_t *r)
                 break;
             }
 
+            /* 到达这里说明一个header已经被解析出来了。 */
             if (rc == NGX_OK) {
 
                 /* a header line has been parsed successfully */
-
+                /* 从headers list里面取出一个table。 */
                 h = ngx_list_push(&u->headers_in.headers);
                 if (h == NULL) {
                     return NGX_ERROR;
                 }
 
                 if (f->split_parts && f->split_parts->nelts) {
-
+                    /* 这个分支不知道是干啥的 */
                     part = f->split_parts->elts;
                     size = u->buffer.pos - part_start;
 
@@ -1491,6 +1492,7 @@ ngx_http_fastcgi_process_header(ngx_http_request_t *r)
 
                 } else {
 
+                    /* 将解析好的头的name和value赋给h */
                     h->key.len = r->header_name_end - r->header_name_start;
                     h->value.len = r->header_end - r->header_start;
 
@@ -1505,6 +1507,7 @@ ngx_http_fastcgi_process_header(ngx_http_request_t *r)
                     h->lowcase_key = h->key.data + h->key.len + 1
                                      + h->value.len + 1;
 
+                    /* cpoy解析出来的header */
                     ngx_memcpy(h->key.data, r->header_name_start, h->key.len);
                     h->key.data[h->key.len] = '\0';
                     ngx_memcpy(h->value.data, r->header_start, h->value.len);
@@ -1523,6 +1526,10 @@ ngx_http_fastcgi_process_header(ngx_http_request_t *r)
                 hh = ngx_hash_find(&umcf->headers_in_hash, h->hash,
                                    h->lowcase_key, h->key.len);
 
+                /* 对每个头设置的回调函数，主要是ngx_http_upstream_process_header_line函数
+                 * 取得r->upstream->headers_in的指针，然后通过传递进来的偏移来确定header
+                 * 的位置指针，最后将h赋值给它。
+                 */
                 if (hh && hh->handler(r, h, hh->offset) != NGX_OK) {
                     return NGX_ERROR;
                 }
