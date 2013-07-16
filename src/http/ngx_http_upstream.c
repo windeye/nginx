@@ -451,13 +451,15 @@ ngx_http_upstream_init(ngx_http_request_t *r)
     }
 #endif
 
-    /* 先删除这个连接的读定时器，因为下面开始与upstream通信？ */
+    /* 先删除这个连接的读定时器，因为下面开始与upstream通信？对的，一旦启动啦upstream，
+		 * 就不应对客户端的读操作有超时处理，请求的主要触发事件将以与上游的连接为主。
+		 */
     if (c->read->timer_set) {
         ngx_del_timer(c->read);
     }
 
-    /* 如果是边缘触发，则挂载写事件,这里提前挂载写事件，因为之后要
-     * 走upstream的流程，以免connect upstream失败，,则不会进入
+    /* 如果是边缘触发，则挂载写事件(应该是upstream到nginx的写事件吧),这里提前挂载写
+		 * 事件，因为之后要走upstream的流程，以免connect upstream失败，,则不会进入
      * ngx_http_finalize_request以挂载写hook.
      */
     if (ngx_event_flags & NGX_USE_CLEAR_EVENT) {
@@ -579,6 +581,9 @@ ngx_http_upstream_init_request(ngx_http_request_t *r)
         ngx_memzero(u->state, sizeof(ngx_http_upstream_state_t));
     }
 
+		/* 向这个请求的main成员指向的原始请求的cleanup链表末尾添加一个新成员，回调
+		 * 设为ngx_http_upstream_cleanup，则请求结束时，一定会调用这个回调。
+		 */
     cln = ngx_http_cleanup_add(r, 0);
     if (cln == NULL) {
         ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
@@ -968,10 +973,14 @@ ngx_http_upstream_handler(ngx_event_t *ev)
     ngx_http_log_ctx_t   *ctx;
     ngx_http_upstream_t  *u;
 
+		/* 由事件的data成员获得connection_t连接，是nginx与upstream的连接，不是nginx与客户端的连接 */
     c = ev->data;
+		/* 由连接的data获得request_t成员 */
     r = c->data;
 
+		/* 由请求的upstream成员获得ngx_http_upsream_t结构体 */
     u = r->upstream;
+		/* request中的连接是nginx与客户端的连接 */
     c = r->connection;
 
     ctx = c->log->data;
@@ -980,9 +989,11 @@ ngx_http_upstream_handler(ngx_event_t *ev)
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
                    "http upstream request: \"%V?%V\"", &r->uri, &r->args);
 
+		/* nginx与upstream的可写事件被触发 */
     if (ev->write) {
         u->write_event_handler(r, u);
 
+		/* 读事件被触发 */
     } else {
         u->read_event_handler(r, u);
     }
@@ -1220,11 +1231,15 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     c->data = r;
 
-    /* 开始挂载回调函数，一个是读，一个是写。 */
+    /* 开始挂载回调函数，一个是读，一个是写。其实ngx_http_upstream_handler会调用
+		 * write_event_handler和read_event_handler来执行读写处理。
+		 */
     c->write->handler = ngx_http_upstream_handler;
     c->read->handler = ngx_http_upstream_handler;
 
+		/* 向上游发送请求的函数 */
     u->write_event_handler = ngx_http_upstream_send_request_handler;
+		/* 接收上游服务器的响应 */
     u->read_event_handler = ngx_http_upstream_process_header;
 
     c->sendfile &= r->connection->sendfile;
@@ -1296,6 +1311,8 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     u->request_sent = 0;
 
+		/* 如果非阻塞连接尚未建立成功，则将写事件添加到定时器，之前这个套接字
+		 * 已经加入到epoll监控中啦，其实就是设置建立tcp连接超时事件。*/
     if (rc == NGX_AGAIN) {
         ngx_add_timer(c->write, u->conf->connect_timeout);
         return;
@@ -1310,6 +1327,7 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
 #endif
 
+		/* 如果连接直接建立成功，则在这直接向上游发送请求。 */
     ngx_http_upstream_send_request(r, u);
 }
 
@@ -1548,19 +1566,22 @@ ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u)
     }
 }
 
-
+/* 因为请求大小是未知的，所以可能要多次调用epoll发送请求，该方法负责反复发送请求 */
 static void
 ngx_http_upstream_send_request_handler(ngx_http_request_t *r,
     ngx_http_upstream_t *u)
 {
     ngx_connection_t  *c;
 
+		/* 获得与上游的连接 */
     c = u->peer.connection;
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "http upstream send request handler");
 
+		/* 写事件的timeout标志为为1表示写事件已经超时啦 */
     if (c->write->timedout) {
+			  /* 将超时错误发送给next函数，它会根据允许的错误重连策略决定重新发起请求还是结束请求 */
         ngx_http_upstream_next(r, u, NGX_HTTP_UPSTREAM_FT_TIMEOUT);
         return;
     }
@@ -1574,9 +1595,14 @@ ngx_http_upstream_send_request_handler(ngx_http_request_t *r,
 
 #endif
 
+		/* 为1时上游的响应需要直接转发给客户端，而此时nginx已经把响应包头发送给客户端啦 */
     if (u->header_sent) {
+			  /* 到此，一定是解析完全部的上游响应包头，并在向下游转发包头啦，因此是不应该继续
+				 * 向上游发送请求的，所以把write handler设为什么都不做的ngx_http_upstream_dummy_handler
+				 */
         u->write_event_handler = ngx_http_upstream_dummy_handler;
 
+				/* 添加写事件到epoll中 */
         (void) ngx_handle_write_event(c->write, 0);
 
         return;
@@ -1720,6 +1746,7 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     /* rc == NGX_OK */
 
+		/* 错误处理 */
     if (u->headers_in.status_n >= NGX_HTTP_SPECIAL_RESPONSE) {
 
         if (r->subrequest_in_memory) {
@@ -1735,6 +1762,7 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
         }
     }
 
+		/* 执行后续工作，主要是设置将要发送给client的header(r->header_out). */
     if (ngx_http_upstream_process_headers(r, u) != NGX_OK) {
         return;
     }
@@ -1967,6 +1995,11 @@ ngx_http_upstream_process_headers(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     umcf = ngx_http_get_module_main_conf(r, ngx_http_upstream_module);
 
+		/* 这个函数会对一个x_accel_redirect的头进行特殊处理，这个头主要是nginx提供了一种机制，
+		 * 让后端的server能够控制访问权限。比如后端限制某个页面不能被用户访问，那么当用户访问
+		 * 这个页面的时候，后端server只需要设置X-Accel-Redirect这个头到一个路径，然后nginx将
+		 * 会输出这个路径的内容给用户. 
+		 */
     if (u->headers_in.x_accel_redirect
         && !(u->conf->ignore_headers & NGX_HTTP_UPSTREAM_IGN_XA_REDIRECT))
     {
@@ -1974,7 +2007,7 @@ ngx_http_upstream_process_headers(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
         part = &u->headers_in.headers.part;
         h = part->elts;
-
+        /* 遍历headers链表 */
         for (i = 0; /* void */; i++) {
 
             if (i >= part->nelts) {
@@ -1987,9 +2020,11 @@ ngx_http_upstream_process_headers(ngx_http_request_t *r, ngx_http_upstream_t *u)
                 i = 0;
             }
 
+						/* 如果在ngx_http_upstream_headers_in中存在，并且这个头当redirect之后，还是不变的，此时则调用copy_handler. */
             hh = ngx_hash_find(&umcf->headers_in_hash, h[i].hash,
                                h[i].lowcase_key, h[i].key.len);
 
+						/* 会在这返回吗，感觉应该走下面的内部重定向机制 */
             if (hh && hh->redirect) {
                 if (hh->copy_handler(r, &h[i], hh->conf) != NGX_OK) {
                     ngx_http_finalize_request(r,
@@ -2012,11 +2047,16 @@ ngx_http_upstream_process_headers(ngx_http_request_t *r, ngx_http_upstream_t *u)
             r->method = NGX_HTTP_GET;
         }
 
+				/* 内部重定向 */
         ngx_http_internal_redirect(r, uri, &args);
         ngx_http_finalize_request(r, NGX_DONE);
         return NGX_DONE;
     }
 
+		/* 没有X-Accel-Redirect头的情况.这个时候，前部分和上面处理类似，首先从
+		 * ngx_http_upstream_headers_in查找，如果存在则调用copy_handler,然后再
+		 * 调用ngx_http_upstream_copy_header_line将剩余的头copy到r->header_out. 
+		 */
     part = &u->headers_in.headers.part;
     h = part->elts;
 
@@ -2032,12 +2072,14 @@ ngx_http_upstream_process_headers(ngx_http_request_t *r, ngx_http_upstream_t *u)
             i = 0;
         }
 
+				/* 查找hash，如果是需要hide的头，则continue */
         if (ngx_hash_find(&u->conf->hide_headers_hash, h[i].hash,
                           h[i].lowcase_key, h[i].key.len))
         {
             continue;
         }
 
+				/* 否则查找hash */
         hh = ngx_hash_find(&umcf->headers_in_hash, h[i].hash,
                            h[i].lowcase_key, h[i].key.len);
 

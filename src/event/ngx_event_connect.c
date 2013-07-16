@@ -40,7 +40,7 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
     }
 
 
-    /* 从连接池取得连接 */
+    /* 从连接池取得连接(ngx_connection_t) */
     c = ngx_get_connection(s, pc->log);
 
     if (c == NULL) {
@@ -81,7 +81,7 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
         }
     }
 
-    /* 开始挂载对应的读写函数. */
+    /* 开始挂载对应的读写函数.就是socket的接收发送函数 */
     c->recv = ngx_recv;
     c->send = ngx_send;
     c->recv_chain = ngx_recv_chain;
@@ -122,7 +122,9 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
 
 #endif
 
-    /* 添加读写事件,为啥要先添加读写时间再去connect?因为是异步非阻塞的连接？ */
+    /* 对于epoll来说，add_conn就是把套接字以期待EPOLLIN|EPOLLOUT事件的方式加入epoll中
+		 * 添加读写事件,为啥要先添加读写事件再去connect?因为是异步非阻塞的连接？ 
+		 */
     if (ngx_add_conn) {
         if (ngx_add_conn(c) == NGX_ERROR) {
             goto failed;
