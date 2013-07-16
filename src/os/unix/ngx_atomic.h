@@ -39,7 +39,7 @@ typedef volatile ngx_atomic_uint_t  ngx_atomic_t;
 
 
 #elif (NGX_DARWIN_ATOMIC)
-
+/* MAC的原子操作 */
 /*
  * use Darwin 8 atomic(3) and barrier(3) operations
  * optimized at run-time for UP and SMP
@@ -91,6 +91,11 @@ typedef volatile ngx_atomic_uint_t  ngx_atomic_t;
 #elif (NGX_HAVE_GCC_ATOMIC)
 
 /* GCC 4.1 builtin atomic operations */
+/* GCC的原子操作 */
+/* GCC中的long类型的长度始终是操作系统的位数，所以这一段代码是可以兼容64位系统的。
+ * 另外注意原子类型ngx_atomic_t一定要加上volatile标志，如果不加的话，原子变量可能
+ * 被编译器优化到寄存器去了，就不可能利用原子操作去实现锁的功能了。
+ */
 
 #define NGX_HAVE_ATOMIC_OPS  1
 
@@ -106,14 +111,18 @@ typedef unsigned long               ngx_atomic_uint_t;
 typedef volatile ngx_atomic_uint_t  ngx_atomic_t;
 
 
+/* 如果lock指向的值等于old，那么把lock指向的内存单元设为set，并返回1，其他情况则返回0； */
 #define ngx_atomic_cmp_set(lock, old, set)                                    \
     __sync_bool_compare_and_swap(lock, old, set)
 
+/* 将value指向的值增加add，返回增加以前的值 */
 #define ngx_atomic_fetch_add(value, add)                                      \
     __sync_fetch_and_add(value, add)
 
+/* 假如你在代码中放上这个函数，那么编译器就不会为了优化而打乱这个函数前后的指令 */
 #define ngx_memory_barrier()        __sync_synchronize()
 
+/* 一条汇编指令，暂停程序运行 */
 #if ( __i386__ || __i386 || __amd64__ || __amd64 )
 #define ngx_cpu_pause()             __asm__ ("pause")
 #else

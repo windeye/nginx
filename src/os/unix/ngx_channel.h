@@ -13,7 +13,6 @@
 #include <ngx_core.h>
 #include <ngx_event.h>
 
-
 typedef struct {
      ngx_uint_t  command;  /* 发送的命令类型 */
      ngx_pid_t   pid;      /* 发送方进程id */

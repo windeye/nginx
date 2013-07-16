@@ -75,6 +75,18 @@ ngx_memalign(size_t alignment, size_t size, ngx_log_t *log)
 {
     void  *p;
 
+    /* malloc或realloc返回的内存块地址都是8的倍数（如果是64位系统，
+     * 则为16的倍数）。如果你需要更大的粒度，请使用memalign或valloc。
+     * 这些函数在头文件“stdlib.h”中声明。 
+     * valloc =  memalign (getpagesize (), size);以页大小作为对齐长度
+     *
+     * 在GNU库中，可以使用函数free释放memalign和valloc返回的内存块。
+     * 但无法在BSD系统中使用，而且BSD系统中并未提供释放这样的内存块的途径。
+     *
+     * 函数memalign将分配一个由size指定大小，地址是boundary的倍数的内存块。
+     * 参数boundary必须是2的幂！函数memalign可以分配较大的内存块，并且可
+     * 以为返回的地址指定粒度。
+     */
     p = memalign(alignment, size);
     if (p == NULL) {
         ngx_log_error(NGX_LOG_EMERG, log, ngx_errno,

@@ -23,6 +23,7 @@ ngx_daemon(ngx_log_t *log)
         break;
 
     default:
+        /* 父进程退出，所以daemon进程的父进程是init进程，一个由 init 继承的孤儿进程。 */
         exit(0);
     }
 
@@ -33,8 +34,10 @@ ngx_daemon(ngx_log_t *log)
         return NGX_ERROR;
     }
 
+    /* umask函数为进程设置文件方式创建屏蔽字。 */
     umask(0);
 
+    /* 将STDIN_FILENO，STDOUT_FILENO，STDERR_FILENO重定向到/dev/null */
     fd = open("/dev/null", O_RDWR);
     if (fd == -1) {
         ngx_log_error(NGX_LOG_EMERG, log, ngx_errno,
@@ -59,6 +62,7 @@ ngx_daemon(ngx_log_t *log)
     }
 #endif
 
+    /* why? */
     if (fd > STDERR_FILENO) {
         if (close(fd) == -1) {
             ngx_log_error(NGX_LOG_EMERG, log, ngx_errno, "close() failed");
