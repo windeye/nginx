@@ -1621,6 +1621,7 @@ ngx_http_upstream_send_request_handler(ngx_http_request_t *r,
 }
 
 
+/* 接收、解析包头，之后还要决定以哪种方式处理包体 */
 static void
 ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
 {
@@ -1635,18 +1636,22 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     c->log->action = "reading response header from upstream";
 
+		/* 看读事件是否超时 */
     if (c->read->timedout) {
         ngx_http_upstream_next(r, u, NGX_HTTP_UPSTREAM_FT_TIMEOUT);
         return;
     }
 
+		/* 如果request_sent为0，说明还没发送请求给upstream就接收到upstream的响应，这不
+		 * 符合upstream的逻辑，也进入next方法。
+		 */
     if (!u->request_sent && ngx_http_upstream_test_connect(c) != NGX_OK) {
         ngx_http_upstream_next(r, u, NGX_HTTP_UPSTREAM_FT_ERROR);
         return;
     }
 
     if (u->buffer.start == NULL) {
-        /* 分配内存来接收后端的数据，大小为u->conf->buffer_size(fastcgi_buffer_size
+        /* NULL说明缓冲区的内存还未分配，则分配内存来接收后端的数据，大小为u->conf->buffer_size(fastcgi_buffer_size
          * 或者proxy_buffer_size),初始大小是页的大小 
          */
         u->buffer.start = ngx_palloc(r->pool, u->conf->buffer_size);
@@ -1686,6 +1691,7 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
         n = c->recv(c, u->buffer.last, u->buffer.end - u->buffer.last);
 
+				/* 表示还需继续接收响应，则调用ngx_handle_read_event再将读事件添加到epoll中 */
         if (n == NGX_AGAIN) {
 #if 0
             ngx_add_timer(rev, u->read_timeout);
@@ -1706,13 +1712,13 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
                           "upstream prematurely closed connection");
         }
 
-        /* next干啥用的？尝试连接下一个upstream？ */
+        /* 错误或者返回0，则去next处理，决定下一步怎么做 */
         if (n == NGX_ERROR || n == 0) {
             ngx_http_upstream_next(r, u, NGX_HTTP_UPSTREAM_FT_ERROR);
             return;
         }
 
-        /* 读取数据后，更新buffer的位置 */
+        /* 到这说明成功读取响应数据，更新buffer的位置 */
         u->buffer.last += n;
 
 #if 0
@@ -1721,13 +1727,14 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
         u->peer.cached = 0;
 #endif
 
-        /* 调用process_header回调 */
+        /* 调用process_header回调，主要是处理应用层的协议 */
         rc = u->process_header(r);
 
-        /* 如果返回again，则说明后端的数据发送不完全，此时需要再次读取. */
+				/* ---根据返回值去判断处理的结果和下一步的动作--- */
         if (rc == NGX_AGAIN) {
-
+						/* 如果返回AGAIN，则说明后端的数据发送不完整，此时需要再次读取. */
             if (u->buffer.last == u->buffer.end) {
+							  /* 如果缓冲区已经用尽，说明包头太大，超出了缓冲区大小，进入next处理 */
                 ngx_log_error(NGX_LOG_ERR, c->log, 0,
                               "upstream sent too big header");
 
@@ -1736,17 +1743,20 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
                 return;
             }
 
+						/* 缓冲区还有空闲空间，则继续recv */
             continue;
         }
 
         break;
     }
 
+		/* 包头不合法，进入next */
     if (rc == NGX_HTTP_UPSTREAM_INVALID_HEADER) {
         ngx_http_upstream_next(r, u, NGX_HTTP_UPSTREAM_FT_INVALID_HEADER);
         return;
     }
 
+		/* 解析错误，结束请求 */
     if (rc == NGX_ERROR) {
         ngx_http_upstream_finalize_request(r, u,
                                            NGX_HTTP_INTERNAL_SERVER_ERROR);
@@ -1755,7 +1765,7 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     /* rc == NGX_OK */
 
-		/* 错误处理 */
+		/* 错误处理 NGX_HTTP_SPECIAL_RESPONSE=300 */
     if (u->headers_in.status_n >= NGX_HTTP_SPECIAL_RESPONSE) {
 
         if (r->subrequest_in_memory) {
@@ -1771,11 +1781,14 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
         }
     }
 
-		/* 执行后续工作，主要是设置将要发送给client的header(r->header_out). */
+		/* 把解析出的头部设置到ngx_http_request_t的head_out中，主要是设置将要发送给
+		 * client的header(r->header_out)，这样在发送包头给客户端是会发送这些设置了的包头。
+		 */
     if (ngx_http_upstream_process_headers(r, u) != NGX_OK) {
         return;
     }
 
+		/* 检测是否需要转发包体,为0是需要转发 */
     if (!r->subrequest_in_memory) {
         ngx_http_upstream_send_response(r, u);
         return;
@@ -1783,18 +1796,24 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     /* subrequest content in memory */
 
+		/* 看是HTTP模块是否实现啦处理包体的input_filter函数 */
     if (u->input_filter == NULL) {
+			  /* 没有实现则用默认的函数代替 */
         u->input_filter_init = ngx_http_upstream_non_buffered_filter_init;
+				/* 默认方法就是试图在buffer中存放全部的包体 */
         u->input_filter = ngx_http_upstream_non_buffered_filter;
+				/* input_filter_ctx指向request */
         u->input_filter_ctx = r;
     }
 
+		/* 为处理包体做初始化工作 */
     if (u->input_filter_init(u->input_filter_ctx) == NGX_ERROR) {
         ngx_http_upstream_finalize_request(r, u,
                                            NGX_HTTP_INTERNAL_SERVER_ERROR);
         return;
     }
 
+		/* 解析完包头后，buffer中是否有剩余内容，n>0说明已经接收到了包体 */
     n = u->buffer.last - u->buffer.pos;
 
     if (n) {
@@ -1802,6 +1821,7 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
         u->state->response_length += n;
 
+				/* 第一次调用input_filter处理包体 */
         if (u->input_filter(u->input_filter_ctx, n) == NGX_ERROR) {
             ngx_http_upstream_finalize_request(r, u, NGX_ERROR);
             return;
@@ -1813,8 +1833,10 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
         return;
     }
 
+		/* 重新设置read handler，表示再有上游响应，用这个函数处理包体 */
     u->read_event_handler = ngx_http_upstream_process_body_in_memory;
 
+		/* 调用次方法处理包体 */
     ngx_http_upstream_process_body_in_memory(r, u);
 }
 
