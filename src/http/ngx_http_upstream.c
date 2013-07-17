@@ -1491,7 +1491,11 @@ ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     c->log->action = "sending request to upstream";
 
-    /* 调用ngx_output_chain发送数据
+    /* 调用ngx_output_chain发送ngx_http_upstream_t中的request_bufs链表，
+		 * 这个方法队发送缓冲区构成的ngx_chain_t链表很重要，它会把未发送的链表缓冲区保存下来，
+		 * 这样就不用每次都带上request_bufs链表啦，这里是这样实现的，在无法一次发送完请求时，
+		 * 会把未发送完的数据保存到u->output中，并返回AGAIN，而且u->request_sent会在第一次
+		 * 调用完这个函数后被置为1，下次调用第二个参数就是NULL啦。
      * 在ngx_output_chain中会依次调用filter链，可是upstream明显不需要
      * 调用filter链，那么nginx是怎么做的呢，是这样子的，在upstream的
      * 初始化的时候，已经将u->output.output_filter改成ngx_chain_writer了 
@@ -1505,11 +1509,13 @@ ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u)
         return;
     }
 
+		/* 为1表示事件仍在定时器中，则删除定时器事件，再根据rc的值判断是否需要将写事件加入定时器 */
     if (c->write->timer_set) {
         ngx_del_timer(c->write);
     }
 
-    /* 和request的处理类似，如果again，则说明数据没有发送完毕，此时挂载写事件. */
+    /* 和request的处理类似，如果again，则说明数据没有发送完毕，为写事件添加定时器，
+		 * 防止发送请求超时，同时将写事件注册到epoll中，然后返回。 */
     if (rc == NGX_AGAIN) {
         ngx_add_timer(c->write, u->conf->send_timeout);
 
@@ -1537,10 +1543,11 @@ ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u)
         c->tcp_nopush = NGX_TCP_NOPUSH_UNSET;
     }
 
+		/* 发送成功，准备读取响应，为读事件添加定时器 */
     ngx_add_timer(c->read, u->conf->read_timeout);
 
 #if 1
-    /* 如果读也可以了，则开始解析头 */
+    /* 如果读也可以了，则开始解析头，之前已经为这个连接注册读事件啦？ */
     if (c->read->ready) {
 
         /* post aio operation */
@@ -1557,6 +1564,8 @@ ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u)
     }
 #endif
 
+		/* 请求已经发送完啦，防止与upstream的连接上再次触发写事件而调用sernd_request方法，
+		 * 则把write handler的回调设为一个空函数，即使再次触发写事件也会什么都不做。*/
     u->write_event_handler = ngx_http_upstream_dummy_handler;
 
     if (ngx_handle_write_event(c->write, 0) != NGX_OK) {
