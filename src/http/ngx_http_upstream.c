@@ -2237,6 +2237,8 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)
     ngx_connection_t          *c;
     ngx_http_core_loc_conf_t  *clcf;
 
+		/* 先向下游发送http包头，包头的流程：upstream=>upstream_t->headers_in=>http_request_t->headers_out，
+		 * 再发给客户端，header_sent标志为会被置为1。*/
     rc = ngx_http_send_header(r);
 
     if (rc == NGX_ERROR || rc > NGX_OK || r->post_action) {
@@ -2244,6 +2246,7 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)
         return;
     }
 
+		/* 向服务器指定某种传输协议以便服务器进行转换,先忽略吧，忒复杂啦 */
     if (u->upgrade) {
         ngx_http_upstream_upgrade(r, u);
         return;
@@ -2251,6 +2254,7 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     c = r->connection;
 
+		/* 客户端的请求只有包头？ */
     if (r->header_only) {
 
         if (u->cacheable || u->store) {
@@ -2260,6 +2264,7 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)
                                      ngx_shutdown_socket_n " failed");
             }
 
+						/* 空函数 */
             r->read_event_handler = ngx_http_request_empty_handler;
             r->write_event_handler = ngx_http_request_empty_handler;
             c->error = 1;
@@ -2272,6 +2277,9 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     u->header_sent = 1;
 
+		/* 如果客户端请求中有包体，而且把包体保存在了临时文件中，则调用cleanup方法清理临时文件，
+		 * 因为向客户端发送响应时，客户端请求的包体已经不需要存在啦，所以在这里清理。
+		 */
     if (r->request_body && r->request_body->temp_file) {
         ngx_pool_run_cleanup_file(r->pool, r->request_body->temp_file->file.fd);
         r->request_body->temp_file->file.fd = NGX_INVALID_FILE;
@@ -2281,15 +2289,17 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     if (!u->buffering) {
 
+			  /* u->buffering为0，不缓存 */
         if (u->input_filter == NULL) {
             u->input_filter_init = ngx_http_upstream_non_buffered_filter_init;
             u->input_filter = ngx_http_upstream_non_buffered_filter;
             u->input_filter_ctx = r;
         }
 
+				/* 设置接收上游响应的读回调函数 */
         u->read_event_handler = ngx_http_upstream_process_non_buffered_upstream;
-        r->write_event_handler =
-                             ngx_http_upstream_process_non_buffered_downstream;
+				/* 设置向客户端发送响应的写回调函数 */
+        r->write_event_handler = ngx_http_upstream_process_non_buffered_downstream;
 
         r->limit_rate = 0;
 
@@ -2298,6 +2308,7 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)
             return;
         }
 
+				/* 根据配置设置TCP_NODELAY */
         if (clcf->tcp_nodelay && c->tcp_nodelay == NGX_TCP_NODELAY_UNSET) {
             ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0, "tcp_nodelay");
 
@@ -2315,11 +2326,14 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)
             c->tcp_nodelay = NGX_TCP_NODELAY_SET;
         }
 
+				/*检查在解析完包头后，buffer中是否有包体 */
         n = u->buffer.last - u->buffer.pos;
 
         if (n) {
+					  /* 有包体，设置下次接收包体buffer开始存放的位置 */
             u->buffer.last = u->buffer.pos;
 
+						/* 设置已接收的包体长度 */
             u->state->response_length += n;
 
             if (u->input_filter(u->input_filter_ctx, n) == NGX_ERROR) {
@@ -2327,17 +2341,21 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)
                 return;
             }
 
+						/* 直接发送已经收到的包体 */
             ngx_http_upstream_process_non_buffered_downstream(r);
 
         } else {
+					  /* 没有收到包体，则清空buffer */
             u->buffer.pos = u->buffer.start;
             u->buffer.last = u->buffer.start;
 
+						/* NGX_HTTP_FLUSH意味着如果请求r的out缓冲区依然有待发送的响应，则“催促”发送出它们。 */
             if (ngx_http_send_special(r, NGX_HTTP_FLUSH) == NGX_ERROR) {
                 ngx_http_upstream_finalize_request(r, u, 0);
                 return;
             }
 
+						/* 如果上游的连接有可读事件，则读取，否则返回，将控制权交给NGINX框架 */
             if (u->peer.connection->read->ready || u->length == 0) {
                 ngx_http_upstream_process_non_buffered_upstream(r, u);
             }
@@ -2419,6 +2437,7 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
 #endif
 
+		/* 下面这些是干啥的？ 需要更多缓存的时候要处理的流程 */
     p = u->pipe;
 
     p->output_filter = (ngx_event_pipe_output_filter_pt) ngx_http_output_filter;
@@ -2832,6 +2851,7 @@ ngx_http_upstream_process_non_buffered_downstream(ngx_http_request_t *r)
         return;
     }
 
+		/* 调用和接收upstream响应相同的函数，只是第二个参数的值是1 */
     ngx_http_upstream_process_non_buffered_request(r, 1);
 }
 
@@ -2855,6 +2875,7 @@ ngx_http_upstream_process_non_buffered_upstream(ngx_http_request_t *r,
         return;
     }
 
+		/* 这个函数才是真正决定以固定内存作为缓存是如何转发响应的，注意第二个参数是0 */
     ngx_http_upstream_process_non_buffered_request(r, 0);
 }
 
@@ -2871,18 +2892,21 @@ ngx_http_upstream_process_non_buffered_request(ngx_http_request_t *r,
     ngx_http_upstream_t       *u;
     ngx_http_core_loc_conf_t  *clcf;
 
+		/* 这里可以看出nginx是如何保存与上下游的连接的 */
     u = r->upstream;
     downstream = r->connection;
     upstream = u->peer.connection;
 
     b = &u->buffer;
 
+		/* length为需要接收的上游包体的长度,为0说明不再需要接收上游的响应，因此do_write只能为1 */
     do_write = do_write || u->length == 0;
 
     for ( ;; ) {
 
         if (do_write) {
 
+					  /* 到这是要向下游发送响应,检查发送缓冲区中是否有内容，这两个链表不为空则表示有内容 */
             if (u->out_bufs || u->busy_bufs) {
                 rc = ngx_http_output_filter(r, u->out_bufs);
 
