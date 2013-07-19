@@ -2906,8 +2906,11 @@ ngx_http_upstream_process_non_buffered_request(ngx_http_request_t *r,
 
         if (do_write) {
 
-					  /* 到这是要向下游发送响应,检查发送缓冲区中是否有内容，这两个链表不为空则表示有内容 */
+					  /* 到这是要向下游发送响应,检查发送缓冲区中是否有内容，这两个链表不为空则表示有内容,
+						 * busy_bufs是因为out_bufs里的内容未必会一次发送完，这时就会使用busy指向out中的内容
+						 * 同时将out置为空,使得它继续处理接收到的响应 */
             if (u->out_bufs || u->busy_bufs) {
+							  /* 发送包体 */
                 rc = ngx_http_output_filter(r, u->out_bufs);
 
                 if (rc == NGX_ERROR) {
@@ -2915,10 +2918,13 @@ ngx_http_upstream_process_non_buffered_request(ngx_http_request_t *r,
                     return;
                 }
 
+								/* 更新缓冲区链表 */
                 ngx_chain_update_chains(r->pool, &u->free_bufs, &u->busy_bufs,
                                         &u->out_bufs, u->output.tag);
             }
 
+						/* busy为null说明到目前为止，需要向下游发送的响应已经都发送完了，也就是说request_t中
+						 * 的out缓冲区都发送完了，这时把buffer缓冲区清空，buffer就可以接收更多的响应包体了。*/
             if (u->busy_bufs == NULL) {
 
                 if (u->length == 0
@@ -2929,21 +2935,27 @@ ngx_http_upstream_process_non_buffered_request(ngx_http_request_t *r,
                     return;
                 }
 
+								/* 重置接收位置， */
                 b->pos = b->start;
                 b->last = b->start;
             }
         }
 
+				/* 到达这一步有两条路，1是do_write为0，表示要读，2是为1时，成功发送完缓冲区中的内容后再读 */
+				/* 看缓冲区还有多大空间，size就是下一步recv能够接收打最大字节数 */
         size = b->end - b->last;
 
         if (size && upstream->read->ready) {
 
+					  /* size大于0且与上游连接有可读事件 */
             n = upstream->recv(upstream, b->last, size);
 
+						/* 等待下一次有可读事件再继续调度 */
             if (n == NGX_AGAIN) {
                 break;
             }
 
+				    /* 接收成功，调用input_filter处理包体 */		
             if (n > 0) {
                 u->state->response_length += n;
 
@@ -2953,6 +2965,7 @@ ngx_http_upstream_process_non_buffered_request(ngx_http_request_t *r,
                 }
             }
 
+						/* 接收成功后，跳到开始准备向下游转发刚收到的响应 */
             do_write = 1;
 
             continue;
@@ -2963,6 +2976,7 @@ ngx_http_upstream_process_non_buffered_request(ngx_http_request_t *r,
 
     clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
+		/* 注册下游的写事件到epoll和为下游的写事件添加定时器 */
     if (downstream->data == r) {
         if (ngx_handle_write_event(downstream->write, clcf->send_lowat)
             != NGX_OK)
@@ -2979,6 +2993,7 @@ ngx_http_upstream_process_non_buffered_request(ngx_http_request_t *r,
         ngx_del_timer(downstream->write);
     }
 
+		/* 注册上游的读事件到epoll和为上游的读事件添加定时器 */
     if (ngx_handle_read_event(upstream->read, 0) != NGX_OK) {
         ngx_http_upstream_finalize_request(r, u, 0);
         return;
