@@ -307,7 +307,7 @@ main(int argc, char *const *argv)
     /*
      * 将参数保存到一个全局的数组中，还以为会保存到cycle的一个变量中呢。
      * 传cycle只是为了使用cycle的log参数。
-     * */
+     */
     if (ngx_save_argv(&init_cycle, argc, argv) != NGX_OK) {
         return 1;
     }

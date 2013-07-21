@@ -121,12 +121,12 @@ NGX_CASA	os/unix/ngx_sunpro_atomic_sparc64.h	9;"	d
 NGX_CHAIN_ERROR	core/ngx_buf.h	120;"	d
 NGX_CHANGEBIN_SIGNAL	core/ngx_config.h	67;"	d
 NGX_CHANGEBIN_SIGNAL	core/ngx_config.h	70;"	d
-NGX_CLEAR_EVENT	event/ngx_event.h	382;"	d
-NGX_CLEAR_EVENT	event/ngx_event.h	403;"	d
-NGX_CLEAR_EVENT	event/ngx_event.h	438;"	d
-NGX_CLOSE_EVENT	event/ngx_event.h	337;"	d
-NGX_CLOSE_EVENT	event/ngx_event.h	371;"	d
-NGX_CLOSE_EVENT	event/ngx_event.h	372;"	d
+NGX_CLEAR_EVENT	event/ngx_event.h	401;"	d
+NGX_CLEAR_EVENT	event/ngx_event.h	422;"	d
+NGX_CLEAR_EVENT	event/ngx_event.h	457;"	d
+NGX_CLOSE_EVENT	event/ngx_event.h	356;"	d
+NGX_CLOSE_EVENT	event/ngx_event.h	390;"	d
+NGX_CLOSE_EVENT	event/ngx_event.h	391;"	d
 NGX_CMD_CLOSE_CHANNEL	os/unix/ngx_process_cycle.h	17;"	d
 NGX_CMD_OPEN_CHANNEL	os/unix/ngx_process_cycle.h	16;"	d
 NGX_CMD_QUIT	os/unix/ngx_process_cycle.h	18;"	d
@@ -186,9 +186,9 @@ NGX_DEFAULT_ECDH_CURVE	mail/ngx_mail_ssl_module.c	14;"	d	file:
 NGX_DEFAULT_POOL_SIZE	core/ngx_palloc.h	22;"	d
 NGX_DIRECT_CONF	core/ngx_conf_file.h	50;"	d
 NGX_DIR_MASK_LEN	os/unix/ngx_files.h	222;"	d
-NGX_DISABLE_EVENT	event/ngx_event.h	343;"	d
-NGX_DISABLE_EVENT	event/ngx_event.h	384;"	d
-NGX_DISABLE_EVENT	event/ngx_event.h	385;"	d
+NGX_DISABLE_EVENT	event/ngx_event.h	362;"	d
+NGX_DISABLE_EVENT	event/ngx_event.h	403;"	d
+NGX_DISABLE_EVENT	event/ngx_event.h	404;"	d
 NGX_DISABLE_SYMLINKS_NOTOWNER	core/ngx_core.h	96;"	d
 NGX_DISABLE_SYMLINKS_OFF	core/ngx_core.h	94;"	d
 NGX_DISABLE_SYMLINKS_ON	core/ngx_core.h	95;"	d
@@ -244,8 +244,8 @@ NGX_ESCAPE_URI	core/ngx_string.h	193;"	d
 NGX_ESCAPE_URI_COMPONENT	core/ngx_string.h	195;"	d
 NGX_ESRCH	os/unix/ngx_errno.h	21;"	d
 NGX_ETIMEDOUT	os/unix/ngx_errno.h	41;"	d
-NGX_EVENT_CONF	event/ngx_event.h	465;"	d
-NGX_EVENT_MODULE	event/ngx_event.h	464;"	d
+NGX_EVENT_CONF	event/ngx_event.h	484;"	d
+NGX_EVENT_MODULE	event/ngx_event.h	483;"	d
 NGX_EXDEV	os/unix/ngx_errno.h	28;"	d
 NGX_FILE_APPEND	os/unix/ngx_files.h	76;"	d
 NGX_FILE_CREATE_OR_OPEN	os/unix/ngx_files.h	73;"	d
@@ -264,9 +264,9 @@ NGX_FILE_SEARCH	os/unix/ngx_files.h	92;"	d
 NGX_FILE_SEARCH	os/unix/ngx_files.h	95;"	d
 NGX_FILE_TRUNCATE	os/unix/ngx_files.h	75;"	d
 NGX_FILE_WRONLY	os/unix/ngx_files.h	71;"	d
-NGX_FLUSH_EVENT	event/ngx_event.h	348;"	d
-NGX_FLUSH_EVENT	event/ngx_event.h	377;"	d
-NGX_FLUSH_EVENT	event/ngx_event.h	378;"	d
+NGX_FLUSH_EVENT	event/ngx_event.h	367;"	d
+NGX_FLUSH_EVENT	event/ngx_event.h	396;"	d
+NGX_FLUSH_EVENT	event/ngx_event.h	397;"	d
 NGX_GEOIP_COUNTRY_CODE	http/modules/ngx_http_geoip_module.c	16;"	d	file:
 NGX_GEOIP_COUNTRY_CODE3	http/modules/ngx_http_geoip_module.c	17;"	d	file:
 NGX_GEOIP_COUNTRY_NAME	http/modules/ngx_http_geoip_module.c	18;"	d	file:
@@ -703,20 +703,20 @@ NGX_INVALID_ARRAY_INDEX	core/ngx_config.h	106;"	d
 NGX_INVALID_FILE	os/unix/ngx_files.h	49;"	d
 NGX_INVALID_INDEX	event/ngx_event.h	16;"	d
 NGX_INVALID_PID	os/unix/ngx_process.h	18;"	d
-NGX_IOCP_ACCEPT	event/ngx_event.h	431;"	d
-NGX_IOCP_CONNECT	event/ngx_event.h	433;"	d
-NGX_IOCP_IO	event/ngx_event.h	432;"	d
+NGX_IOCP_ACCEPT	event/ngx_event.h	450;"	d
+NGX_IOCP_CONNECT	event/ngx_event.h	452;"	d
+NGX_IOCP_IO	event/ngx_event.h	451;"	d
 NGX_IOVS	os/unix/ngx_files.c	149;"	d	file:
 NGX_IOVS	os/unix/ngx_readv_chain.c	13;"	d	file:
 NGX_IOVS	os/unix/ngx_writev_chain.c	14;"	d	file:
 NGX_IOVS	os/unix/ngx_writev_chain.c	16;"	d	file:
 NGX_IO_SENDFILE	os/unix/ngx_os.h	16;"	d
 NGX_KQUEUE_UDATA_T	ngx_auto_config.h	73;"	d
-NGX_LEVEL_EVENT	event/ngx_event.h	380;"	d
-NGX_LEVEL_EVENT	event/ngx_event.h	393;"	d
-NGX_LEVEL_EVENT	event/ngx_event.h	402;"	d
-NGX_LEVEL_EVENT	event/ngx_event.h	415;"	d
-NGX_LEVEL_EVENT	event/ngx_event.h	424;"	d
+NGX_LEVEL_EVENT	event/ngx_event.h	399;"	d
+NGX_LEVEL_EVENT	event/ngx_event.h	412;"	d
+NGX_LEVEL_EVENT	event/ngx_event.h	421;"	d
+NGX_LEVEL_EVENT	event/ngx_event.h	434;"	d
+NGX_LEVEL_EVENT	event/ngx_event.h	443;"	d
 NGX_LINEFEED	os/unix/ngx_files.h	153;"	d
 NGX_LINEFEED_SIZE	os/unix/ngx_files.h	152;"	d
 NGX_LISTEN_BACKLOG	os/unix/ngx_darwin_config.h	77;"	d
@@ -745,10 +745,10 @@ NGX_LOG_INFO	core/ngx_log.h	23;"	d
 NGX_LOG_NOTICE	core/ngx_log.h	22;"	d
 NGX_LOG_STDERR	core/ngx_log.h	16;"	d
 NGX_LOG_WARN	core/ngx_log.h	21;"	d
-NGX_LOWAT_EVENT	event/ngx_event.h	352;"	d
-NGX_LOWAT_EVENT	event/ngx_event.h	374;"	d
-NGX_LOWAT_EVENT	event/ngx_event.h	375;"	d
-NGX_LOWLEVEL_BUFFERED	core/ngx_connection.h	109;"	d
+NGX_LOWAT_EVENT	event/ngx_event.h	371;"	d
+NGX_LOWAT_EVENT	event/ngx_event.h	393;"	d
+NGX_LOWAT_EVENT	event/ngx_event.h	394;"	d
+NGX_LOWLEVEL_BUFFERED	core/ngx_connection.h	129;"	d
 NGX_MAIL_AUTH_APOP	mail/ngx_mail.h	304;"	d
 NGX_MAIL_AUTH_APOP_ENABLED	mail/ngx_mail.h	311;"	d
 NGX_MAIL_AUTH_CRAM_MD5	mail/ngx_mail.h	305;"	d
@@ -802,11 +802,11 @@ NGX_NO_RESOLVER	core/ngx_resolver.h	31;"	d
 NGX_OFF_T_LEN	ngx_auto_config.h	152;"	d
 NGX_OK	core/ngx_core.h	29;"	d
 NGX_OLDPID_EXT	core/nginx.h	17;"	d
-NGX_ONESHOT_EVENT	event/ngx_event.h	381;"	d
-NGX_ONESHOT_EVENT	event/ngx_event.h	394;"	d
-NGX_ONESHOT_EVENT	event/ngx_event.h	404;"	d
-NGX_ONESHOT_EVENT	event/ngx_event.h	416;"	d
-NGX_ONESHOT_EVENT	event/ngx_event.h	425;"	d
+NGX_ONESHOT_EVENT	event/ngx_event.h	400;"	d
+NGX_ONESHOT_EVENT	event/ngx_event.h	413;"	d
+NGX_ONESHOT_EVENT	event/ngx_event.h	423;"	d
+NGX_ONESHOT_EVENT	event/ngx_event.h	435;"	d
+NGX_ONESHOT_EVENT	event/ngx_event.h	444;"	d
 NGX_OPENSSL_MD5	ngx_auto_config.h	287;"	d
 NGX_OPEN_FILE_DIRECTIO_OFF	core/ngx_open_file_cache.h	16;"	d
 NGX_PCRE	ngx_auto_config.h	282;"	d
@@ -830,8 +830,8 @@ NGX_POP3_STLS	mail/ngx_mail.h	263;"	d
 NGX_POP3_TOP	mail/ngx_mail.h	271;"	d
 NGX_POP3_UIDL	mail/ngx_mail.h	272;"	d
 NGX_POP3_USER	mail/ngx_mail.h	258;"	d
-NGX_POST_EVENTS	event/ngx_event.h	520;"	d
-NGX_POST_THREAD_EVENTS	event/ngx_event.h	521;"	d
+NGX_POST_EVENTS	event/ngx_event.h	540;"	d
+NGX_POST_THREAD_EVENTS	event/ngx_event.h	541;"	d
 NGX_PREFIX	ngx_auto_config.h	317;"	d
 NGX_PROCESS_DETACHED	os/unix/ngx_process.h	54;"	d
 NGX_PROCESS_HELPER	os/unix/ngx_process_cycle.h	27;"	d
@@ -845,11 +845,11 @@ NGX_PROCESS_SINGLE	os/unix/ngx_process_cycle.h	23;"	d
 NGX_PROCESS_WORKER	os/unix/ngx_process_cycle.h	26;"	d
 NGX_PTR_SIZE	ngx_auto_config.h	122;"	d
 NGX_RADIX_NO_VALUE	core/ngx_radix_tree.h	16;"	d
-NGX_READ_EVENT	event/ngx_event.h	358;"	d
-NGX_READ_EVENT	event/ngx_event.h	390;"	d
-NGX_READ_EVENT	event/ngx_event.h	399;"	d
-NGX_READ_EVENT	event/ngx_event.h	412;"	d
-NGX_READ_EVENT	event/ngx_event.h	421;"	d
+NGX_READ_EVENT	event/ngx_event.h	377;"	d
+NGX_READ_EVENT	event/ngx_event.h	409;"	d
+NGX_READ_EVENT	event/ngx_event.h	418;"	d
+NGX_READ_EVENT	event/ngx_event.h	431;"	d
+NGX_READ_EVENT	event/ngx_event.h	440;"	d
 NGX_RECONFIGURE_SIGNAL	core/ngx_config.h	63;"	d
 NGX_REGEX_CASELESS	core/ngx_regex.h	20;"	d
 NGX_REGEX_NO_MATCHED	core/ngx_regex.h	18;"	d
@@ -972,7 +972,7 @@ NGX_SPDY_UNSUPPORTED_VERSION	http/ngx_http_spdy.c	63;"	d	file:
 NGX_SPDY_VERSION	http/ngx_http_spdy.h	18;"	d
 NGX_SPDY_WRITE_BUFFERED	http/ngx_http_spdy_filter_module.c	17;"	d	file:
 NGX_SSL_BUFFER	event/ngx_event_openssl.h	93;"	d
-NGX_SSL_BUFFERED	core/ngx_connection.h	110;"	d
+NGX_SSL_BUFFERED	core/ngx_connection.h	130;"	d
 NGX_SSL_BUFSIZE	event/ngx_event_openssl.h	96;"	d
 NGX_SSL_CLIENT	event/ngx_event_openssl.h	94;"	d
 NGX_SSL_DFLT_BUILTIN_SCACHE	event/ngx_event_openssl.h	57;"	d
@@ -1016,31 +1016,31 @@ NGX_TRAILERS	os/unix/ngx_freebsd_sendfile_chain.c	37;"	d	file:
 NGX_UNESCAPE_REDIRECT	core/ngx_string.h	202;"	d
 NGX_UNESCAPE_URI	core/ngx_string.h	201;"	d
 NGX_UNIX_ADDRSTRLEN	core/ngx_inet.h	27;"	d
-NGX_UPDATE_TIME	event/ngx_event.h	519;"	d
+NGX_UPDATE_TIME	event/ngx_event.h	539;"	d
 NGX_USER	ngx_auto_config.h	392;"	d
-NGX_USE_AIO_EVENT	event/ngx_event.h	295;"	d
-NGX_USE_CLEAR_EVENT	event/ngx_event.h	262;"	d
-NGX_USE_EPOLL_EVENT	event/ngx_event.h	284;"	d
-NGX_USE_EVENTPORT_EVENT	event/ngx_event.h	319;"	d
-NGX_USE_FD_EVENT	event/ngx_event.h	307;"	d
-NGX_USE_GREEDY_EVENT	event/ngx_event.h	279;"	d
-NGX_USE_IOCP_EVENT	event/ngx_event.h	301;"	d
-NGX_USE_KQUEUE_EVENT	event/ngx_event.h	268;"	d
-NGX_USE_LEVEL_EVENT	event/ngx_event.h	250;"	d
-NGX_USE_LOWAT_EVENT	event/ngx_event.h	274;"	d
-NGX_USE_ONESHOT_EVENT	event/ngx_event.h	256;"	d
-NGX_USE_RTSIG_EVENT	event/ngx_event.h	289;"	d
-NGX_USE_TIMER_EVENT	event/ngx_event.h	313;"	d
-NGX_USE_VNODE_EVENT	event/ngx_event.h	324;"	d
+NGX_USE_AIO_EVENT	event/ngx_event.h	314;"	d
+NGX_USE_CLEAR_EVENT	event/ngx_event.h	281;"	d
+NGX_USE_EPOLL_EVENT	event/ngx_event.h	303;"	d
+NGX_USE_EVENTPORT_EVENT	event/ngx_event.h	338;"	d
+NGX_USE_FD_EVENT	event/ngx_event.h	326;"	d
+NGX_USE_GREEDY_EVENT	event/ngx_event.h	298;"	d
+NGX_USE_IOCP_EVENT	event/ngx_event.h	320;"	d
+NGX_USE_KQUEUE_EVENT	event/ngx_event.h	287;"	d
+NGX_USE_LEVEL_EVENT	event/ngx_event.h	269;"	d
+NGX_USE_LOWAT_EVENT	event/ngx_event.h	293;"	d
+NGX_USE_ONESHOT_EVENT	event/ngx_event.h	275;"	d
+NGX_USE_RTSIG_EVENT	event/ngx_event.h	308;"	d
+NGX_USE_TIMER_EVENT	event/ngx_event.h	332;"	d
+NGX_USE_VNODE_EVENT	event/ngx_event.h	343;"	d
 NGX_UTF_LEN	http/modules/ngx_http_charset_filter_module.c	18;"	d	file:
-NGX_VNODE_EVENT	event/ngx_event.h	353;"	d
-NGX_VNODE_EVENT	event/ngx_event.h	361;"	d
-NGX_VNODE_EVENT	event/ngx_event.h	362;"	d
-NGX_WRITE_EVENT	event/ngx_event.h	359;"	d
-NGX_WRITE_EVENT	event/ngx_event.h	391;"	d
-NGX_WRITE_EVENT	event/ngx_event.h	400;"	d
-NGX_WRITE_EVENT	event/ngx_event.h	413;"	d
-NGX_WRITE_EVENT	event/ngx_event.h	422;"	d
+NGX_VNODE_EVENT	event/ngx_event.h	372;"	d
+NGX_VNODE_EVENT	event/ngx_event.h	380;"	d
+NGX_VNODE_EVENT	event/ngx_event.h	381;"	d
+NGX_WRITE_EVENT	event/ngx_event.h	378;"	d
+NGX_WRITE_EVENT	event/ngx_event.h	410;"	d
+NGX_WRITE_EVENT	event/ngx_event.h	419;"	d
+NGX_WRITE_EVENT	event/ngx_event.h	432;"	d
+NGX_WRITE_EVENT	event/ngx_event.h	441;"	d
 NGX_WRITE_SHUTDOWN	os/unix/ngx_socket.h	15;"	d
 NGX_ZLIB	ngx_auto_config.h	312;"	d
 OK	http/modules/perl/nginx.pm	/^use constant OK                             => 0;$/;"	c
@@ -1452,7 +1452,7 @@ change_list1	event/modules/ngx_kqueue_module.c	/^static struct kevent  *change_l
 changes	event/modules/ngx_devpoll_module.c	/^    ngx_uint_t      changes;$/;"	m	struct:__anon277	file:
 changes	event/modules/ngx_kqueue_module.c	/^    ngx_uint_t  changes;$/;"	m	struct:__anon273	file:
 channel	event/ngx_event.h	/^    unsigned         channel:1;$/;"	m	struct:ngx_event_s
-channel	os/unix/ngx_process.h	/^    ngx_socket_t        channel[2];       \/* socket pair *\/$/;"	m	struct:__anon261
+channel	os/unix/ngx_process.h	/^    ngx_socket_t        channel[2];       \/* socket pair,用于master与worker之间的通信 *\/$/;"	m	struct:__anon261
 characters	http/modules/ngx_http_charset_filter_module.c	/^    ngx_uint_t                  characters;$/;"	m	struct:__anon84	file:
 charset	http/modules/ngx_http_charset_filter_module.c	/^    ngx_http_charset_t         *charset;$/;"	m	struct:__anon84	file:
 charset	http/modules/ngx_http_charset_filter_module.c	/^    ngx_int_t                   charset;$/;"	m	struct:__anon82	file:
@@ -2384,7 +2384,7 @@ itimerspec	event/modules/ngx_eventport_module.c	/^typedef struct itimerspec {   
 itimerspec_t	event/modules/ngx_eventport_module.c	/^} itimerspec_t;$/;"	t	typeref:struct:itimerspec	file:
 jpeg_quality	http/modules/ngx_http_image_filter_module.c	/^    ngx_uint_t                   jpeg_quality;$/;"	m	struct:__anon29	file:
 jqcv	http/modules/ngx_http_image_filter_module.c	/^    ngx_http_complex_value_t    *jqcv;$/;"	m	struct:__anon29	file:
-just_spawn	os/unix/ngx_process.h	/^    unsigned            just_spawn:1;$/;"	m	struct:__anon261
+just_spawn	os/unix/ngx_process.h	/^    unsigned            just_spawn:1;     \/* 为1时标志正在生成子进程 *\/$/;"	m	struct:__anon261
 keep_alive	http/ngx_http_request.h	/^    ngx_table_elt_t                  *keep_alive;$/;"	m	struct:__anon4
 keep_alive_n	http/ngx_http_request.h	/^    time_t                            keep_alive_n;$/;"	m	struct:__anon4
 keep_conn	http/modules/ngx_http_fastcgi_module.c	/^    ngx_flag_t                     keep_conn;$/;"	m	struct:__anon156	file:
@@ -2843,7 +2843,7 @@ name	os/unix/ngx_darwin_init.c	/^    char        *name;$/;"	m	struct:__anon260	f
 name	os/unix/ngx_files.h	/^    u_char                      *name;$/;"	m	struct:__anon256
 name	os/unix/ngx_freebsd_init.c	/^    char        *name;$/;"	m	struct:__anon255	file:
 name	os/unix/ngx_process.c	/^    char   *name;$/;"	m	struct:__anon247	file:
-name	os/unix/ngx_process.h	/^    char               *name;$/;"	m	struct:__anon261
+name	os/unix/ngx_process.h	/^    char               *name;             \/* 进程的名称 *\/$/;"	m	struct:__anon261
 name	os/unix/ngx_process.h	/^    char         *name;$/;"	m	struct:__anon262
 name	os/unix/ngx_process_cycle.h	/^    char                      *name;$/;"	m	struct:__anon259
 name	os/unix/ngx_shmem.h	/^    ngx_str_t    name;$/;"	m	struct:__anon263
@@ -2926,11 +2926,11 @@ ngx_accept_mutex_held	event/ngx_event.c	/^ngx_uint_t            ngx_accept_mutex
 ngx_accept_mutex_lock_file	event/ngx_event.c	/^ngx_file_t            ngx_accept_mutex_lock_file;$/;"	v
 ngx_accept_mutex_ptr	event/ngx_event.c	/^ngx_atomic_t         *ngx_accept_mutex_ptr;$/;"	v
 ngx_add_channel_event	os/unix/ngx_channel.c	/^ngx_add_channel_event(ngx_cycle_t *cycle, ngx_fd_t fd, ngx_int_t event,$/;"	f
-ngx_add_conn	event/ngx_event.h	448;"	d
-ngx_add_event	event/ngx_event.h	446;"	d
+ngx_add_conn	event/ngx_event.h	467;"	d
+ngx_add_event	event/ngx_event.h	465;"	d
 ngx_add_inherited_sockets	core/nginx.c	/^ngx_add_inherited_sockets(ngx_cycle_t *cycle)$/;"	f	file:
 ngx_add_path	core/ngx_file.c	/^ngx_add_path(ngx_conf_t *cf, ngx_path_t **slot)$/;"	f
-ngx_add_timer	event/ngx_event.h	451;"	d
+ngx_add_timer	event/ngx_event.h	470;"	d
 ngx_addr_t	core/ngx_inet.h	/^} ngx_addr_t;$/;"	t	typeref:struct:__anon285
 ngx_aio_add_event	event/modules/ngx_aio_module.c	/^ngx_aio_add_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags)$/;"	f	file:
 ngx_aio_ctx	event/modules/ngx_epoll_module.c	/^aio_context_t               ngx_aio_ctx = 0;$/;"	v
@@ -3245,9 +3245,9 @@ ngx_debug_quit	os/unix/ngx_process_cycle.c	/^sig_atomic_t  ngx_debug_quit;$/;"	v
 ngx_decode_base64	core/ngx_string.c	/^ngx_decode_base64(ngx_str_t *dst, ngx_str_t *src)$/;"	f
 ngx_decode_base64_internal	core/ngx_string.c	/^ngx_decode_base64_internal(ngx_str_t *dst, ngx_str_t *src, const u_char *basis)$/;"	f	file:
 ngx_decode_base64url	core/ngx_string.c	/^ngx_decode_base64url(ngx_str_t *dst, ngx_str_t *src)$/;"	f
-ngx_del_conn	event/ngx_event.h	449;"	d
-ngx_del_event	event/ngx_event.h	447;"	d
-ngx_del_timer	event/ngx_event.h	452;"	d
+ngx_del_conn	event/ngx_event.h	468;"	d
+ngx_del_event	event/ngx_event.h	466;"	d
+ngx_del_timer	event/ngx_event.h	471;"	d
 ngx_delete_dir	os/unix/ngx_files.h	241;"	d
 ngx_delete_dir_n	os/unix/ngx_files.h	242;"	d
 ngx_delete_file	os/unix/ngx_files.h	108;"	d
@@ -3282,7 +3282,7 @@ ngx_directio_on_n	os/unix/ngx_files.h	348;"	d
 ngx_directio_on_n	os/unix/ngx_files.h	353;"	d
 ngx_disable_accept_events	event/ngx_event_accept.c	/^ngx_disable_accept_events(ngx_cycle_t *cycle)$/;"	f	file:
 ngx_dns_strcmp	core/ngx_string.c	/^ngx_dns_strcmp(u_char *s1, u_char *s2)$/;"	f
-ngx_done_events	event/ngx_event.h	444;"	d
+ngx_done_events	event/ngx_event.h	463;"	d
 ngx_drain_connections	core/ngx_connection.c	/^ngx_drain_connections(void)$/;"	f	file:
 ngx_empty_gif	http/modules/ngx_http_empty_gif_module.c	/^static u_char  ngx_empty_gif[] = {$/;"	v	file:
 ngx_enable_accept_events	event/ngx_event_accept.c	/^ngx_enable_accept_events(ngx_cycle_t *cycle)$/;"	f	file:
@@ -3340,11 +3340,11 @@ ngx_event_expire_timers	event/ngx_event_timer.c	/^ngx_event_expire_timers(void)$
 ngx_event_find_timer	event/ngx_event_timer.c	/^ngx_event_find_timer(void)$/;"	f
 ngx_event_flags	event/ngx_event.c	/^ngx_uint_t            ngx_event_flags;$/;"	v
 ngx_event_free_peer_pt	event/ngx_event_connect.h	/^typedef void (*ngx_event_free_peer_pt)(ngx_peer_connection_t *pc, void *data,$/;"	t
-ngx_event_get_conf	event/ngx_event.h	530;"	d
+ngx_event_get_conf	event/ngx_event.h	550;"	d
 ngx_event_get_peer	event/ngx_event_connect.c	/^ngx_event_get_peer(ngx_peer_connection_t *pc, void *data)$/;"	f
 ngx_event_get_peer_pt	event/ngx_event_connect.h	/^typedef ngx_int_t (*ngx_event_get_peer_pt)(ngx_peer_connection_t *pc,$/;"	t
 ngx_event_handler_pt	core/ngx_core.h	/^typedef void (*ngx_event_handler_pt)(ngx_event_t *ev);$/;"	t
-ngx_event_ident	event/ngx_event.h	556;"	d
+ngx_event_ident	event/ngx_event.h	576;"	d
 ngx_event_init_conf	event/ngx_event.c	/^ngx_event_init_conf(ngx_cycle_t *cycle, void *conf)$/;"	f	file:
 ngx_event_max_module	event/ngx_event.c	/^static ngx_uint_t     ngx_event_max_module;$/;"	v	file:
 ngx_event_module_init	event/ngx_event.c	/^ngx_event_module_init(ngx_cycle_t *cycle)$/;"	f	file:
@@ -5304,7 +5304,7 @@ ngx_io	core/ngx_connection.c	/^ngx_os_io_t  ngx_io;$/;"	v
 ngx_is_dir	os/unix/ngx_files.h	177;"	d
 ngx_is_exec	os/unix/ngx_files.h	180;"	d
 ngx_is_file	os/unix/ngx_files.h	178;"	d
-ngx_is_init_cycle	core/ngx_cycle.h	120;"	d
+ngx_is_init_cycle	core/ngx_cycle.h	142;"	d
 ngx_is_link	os/unix/ngx_files.h	179;"	d
 ngx_keyval_t	core/ngx_string.h	/^} ngx_keyval_t;$/;"	t	typeref:struct:__anon326
 ngx_kqueue	event/modules/ngx_kqueue_module.c	/^int                    ngx_kqueue = -1;$/;"	v
@@ -5825,8 +5825,8 @@ ngx_posted_events	event/ngx_event_posted.c	/^ngx_thread_volatile ngx_event_t  *n
 ngx_posted_events_mutex	event/ngx_event_posted.c	/^ngx_mutex_t                      *ngx_posted_events_mutex;$/;"	v
 ngx_prefix	core/nginx.c	/^static u_char      *ngx_prefix;$/;"	v	file:
 ngx_process	os/unix/ngx_process_cycle.c	/^ngx_uint_t    ngx_process;$/;"	v
-ngx_process_changes	event/ngx_event.h	442;"	d
-ngx_process_events	event/ngx_event.h	443;"	d
+ngx_process_changes	event/ngx_event.h	461;"	d
+ngx_process_events	event/ngx_event.h	462;"	d
 ngx_process_events_and_timers	event/ngx_event.c	/^ngx_process_events_and_timers(ngx_cycle_t *cycle)$/;"	f
 ngx_process_get_status	os/unix/ngx_process.c	/^ngx_process_get_status(void)$/;"	f	file:
 ngx_process_options	core/nginx.c	/^ngx_process_options(ngx_cycle_t *cycle)$/;"	f	file:
@@ -5912,8 +5912,8 @@ ngx_realpath_n	os/unix/ngx_files.h	204;"	d
 ngx_reap	os/unix/ngx_process_cycle.c	/^sig_atomic_t  ngx_reap;$/;"	v
 ngx_reap_children	os/unix/ngx_process_cycle.c	/^ngx_reap_children(ngx_cycle_t *cycle)$/;"	f	file:
 ngx_reconfigure	os/unix/ngx_process_cycle.c	/^sig_atomic_t  ngx_reconfigure;$/;"	v
-ngx_recv	event/ngx_event.h	457;"	d
-ngx_recv_chain	event/ngx_event.h	458;"	d
+ngx_recv	event/ngx_event.h	476;"	d
+ngx_recv_chain	event/ngx_event.h	477;"	d
 ngx_recv_chain_pt	os/unix/ngx_os.h	/^typedef ssize_t (*ngx_recv_chain_pt)(ngx_connection_t *c, ngx_chain_t *in);$/;"	t
 ngx_recv_pt	os/unix/ngx_os.h	/^typedef ssize_t (*ngx_recv_pt)(ngx_connection_t *c, u_char *buf, size_t size);$/;"	t
 ngx_regex_commands	core/ngx_regex.c	/^static ngx_command_t  ngx_regex_commands[] = {$/;"	v	file:
@@ -6022,8 +6022,8 @@ ngx_select_process_events	event/modules/ngx_select_module.c	/^ngx_select_process
 ngx_select_process_events	event/modules/ngx_win32_select_module.c	/^ngx_select_process_events(ngx_cycle_t *cycle, ngx_msec_t timer,$/;"	f	file:
 ngx_select_repair_fd_sets	event/modules/ngx_select_module.c	/^ngx_select_repair_fd_sets(ngx_cycle_t *cycle)$/;"	f	file:
 ngx_select_repair_fd_sets	event/modules/ngx_win32_select_module.c	/^ngx_select_repair_fd_sets(ngx_cycle_t *cycle)$/;"	f	file:
-ngx_send	event/ngx_event.h	460;"	d
-ngx_send_chain	event/ngx_event.h	461;"	d
+ngx_send	event/ngx_event.h	479;"	d
+ngx_send_chain	event/ngx_event.h	480;"	d
 ngx_send_chain_pt	os/unix/ngx_os.h	/^typedef ngx_chain_t *(*ngx_send_chain_pt)(ngx_connection_t *c, ngx_chain_t *in,$/;"	t
 ngx_send_lowat	event/ngx_event.c	/^ngx_send_lowat(ngx_connection_t *c, size_t lowat)$/;"	f
 ngx_send_pt	os/unix/ngx_os.h	/^typedef ssize_t (*ngx_send_pt)(ngx_connection_t *c, u_char *buf, size_t size);$/;"	t
@@ -6390,7 +6390,7 @@ ngx_trylock_fd	os/unix/ngx_files.c	/^ngx_trylock_fd(ngx_fd_t fd)$/;"	f
 ngx_trylock_fd_n	os/unix/ngx_files.h	305;"	d
 ngx_udp_connect	core/ngx_resolver.c	/^ngx_udp_connect(ngx_udp_connection_t *uc)$/;"	f
 ngx_udp_connection_t	core/ngx_resolver.h	/^} ngx_udp_connection_t;$/;"	t	typeref:struct:__anon321
-ngx_udp_recv	event/ngx_event.h	459;"	d
+ngx_udp_recv	event/ngx_event.h	478;"	d
 ngx_udp_unix_recv	os/unix/ngx_udp_recv.c	/^ngx_udp_unix_recv(ngx_connection_t *c, u_char *buf, size_t size)$/;"	f
 ngx_uid_t	os/unix/ngx_user.h	/^typedef uid_t  ngx_uid_t;$/;"	t
 ngx_uint_t	core/ngx_config.h	/^typedef uintptr_t       ngx_uint_t;$/;"	t
@@ -6729,7 +6729,7 @@ previous	core/ngx_connection.h	/^    ngx_listening_t    *previous;$/;"	m	struct:
 priority	core/ngx_cycle.h	/^     int                      priority;$/;"	m	struct:__anon291
 priority	http/ngx_http_spdy.h	/^    ngx_uint_t                       priority;$/;"	m	struct:ngx_http_spdy_out_frame_s
 priority	http/ngx_http_spdy.h	/^    unsigned                         priority:2;$/;"	m	struct:ngx_http_spdy_stream_s
-proc	os/unix/ngx_process.h	/^    ngx_spawn_proc_pt   proc;             \/* 进程执行的函数 *\/$/;"	m	struct:__anon261
+proc	os/unix/ngx_process.h	/^    ngx_spawn_proc_pt   proc;             \/* 进程执行的函数,父进程调用spawn_process生成子进程时使用 *\/$/;"	m	struct:__anon261
 process	event/ngx_event_openssl_stapling.c	/^    ngx_int_t                  (*process)(ngx_ssl_ocsp_ctx_t *r);$/;"	m	struct:ngx_ssl_ocsp_ctx_s	file:
 process_changes	event/ngx_event.h	/^    ngx_int_t  (*process_changes)(ngx_cycle_t *cycle, ngx_uint_t nowait);$/;"	m	struct:__anon270
 process_events	event/ngx_event.h	/^    ngx_int_t  (*process_events)(ngx_cycle_t *cycle, ngx_msec_t timer,$/;"	m	struct:__anon270
@@ -6904,7 +6904,7 @@ resolver_timeout	event/ngx_event_openssl_stapling.c	/^    ngx_msec_t            
 resolver_timeout	event/ngx_event_openssl_stapling.c	/^    ngx_msec_t                   resolver_timeout;$/;"	m	struct:ngx_ssl_ocsp_ctx_s	file:
 resolver_timeout	http/ngx_http_core_module.h	/^    ngx_msec_t    resolver_timeout;        \/* resolver_timeout *\/$/;"	m	struct:ngx_http_core_loc_conf_s
 resolver_timeout	mail/ngx_mail.h	/^    ngx_msec_t              resolver_timeout;$/;"	m	struct:__anon239
-respawn	os/unix/ngx_process.h	/^    unsigned            respawn:1;$/;"	m	struct:__anon261
+respawn	os/unix/ngx_process.h	/^    unsigned            respawn:1;        \/* 为1时表示正在重新生成子进程 *\/     $/;"	m	struct:__anon261
 response	event/ngx_event_openssl_stapling.c	/^    ngx_buf_t                   *response;$/;"	m	struct:ngx_ssl_ocsp_ctx_s	file:
 response	mail/ngx_mail_auth_http_module.c	/^    ngx_buf_t                      *response;$/;"	m	struct:ngx_mail_auth_http_ctx_s	file:
 response_length	http/ngx_http_upstream.h	/^    off_t                            response_length;$/;"	m	struct:__anon17
@@ -7302,7 +7302,7 @@ status	http/ngx_http_script.h	/^    uintptr_t                   status;$/;"	m	st
 status	http/ngx_http_upstream.h	/^    ngx_table_elt_t                 *status;$/;"	m	struct:__anon24
 status	http/ngx_http_upstream.h	/^    ngx_uint_t                       status;$/;"	m	struct:__anon17
 status	http/ngx_http_upstream.h	/^    ngx_uint_t                      status;$/;"	m	struct:__anon26
-status	os/unix/ngx_process.h	/^    int                 status;           \/* 进程状态 *\/$/;"	m	struct:__anon261
+status	os/unix/ngx_process.h	/^    int                 status;           \/* 调用waitpid获取到的进程状态 *\/$/;"	m	struct:__anon261
 status_code	http/modules/ngx_http_limit_conn_module.c	/^    ngx_uint_t          status_code;$/;"	m	struct:__anon45	file:
 status_code	http/modules/ngx_http_limit_req_module.c	/^    ngx_uint_t                   status_code;$/;"	m	struct:__anon171	file:
 status_line	http/ngx_http_request.h	/^    ngx_str_t                         status_line;$/;"	m	struct:__anon5

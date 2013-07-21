@@ -51,6 +51,7 @@ ngx_event_accept(ngx_event_t *ev)
 
     lc = ev->data;
     ls = lc->listening;
+		/* 开始的时候ready是0 */
     ev->ready = 0;
 
     ngx_log_debug2(NGX_LOG_DEBUG_EVENT, ev->log, 0,

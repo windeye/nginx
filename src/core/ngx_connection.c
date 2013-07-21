@@ -808,7 +808,7 @@ ngx_get_connection(ngx_socket_t s, ngx_log_t *log)
     /* 清空内存的数据 */
     ngx_memzero(c, sizeof(ngx_connection_t));
 
-    /* 恢复之前的读写事件指针 */
+    /* 恢复之前的读写事件指针,也就是说连接的读写事件是不会变的 */
     c->read = rev;
     c->write = wev;
     c->fd = s;
@@ -819,6 +819,7 @@ ngx_get_connection(ngx_socket_t s, ngx_log_t *log)
     ngx_memzero(rev, sizeof(ngx_event_t));
     ngx_memzero(wev, sizeof(ngx_event_t));
 
+		/* 对instance取反 */
     rev->instance = !instance;
     wev->instance = !instance;
 
@@ -828,6 +829,7 @@ ngx_get_connection(ngx_socket_t s, ngx_log_t *log)
     rev->data = c;
     wev->data = c;
 
+		/* 可写啦 */
     wev->write = 1;
 
     return c;

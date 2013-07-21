@@ -37,14 +37,19 @@ typedef void (*ngx_event_save_peer_session_pt)(ngx_peer_connection_t *pc,
 struct ngx_peer_connection_s {
     ngx_connection_t                *connection;
 
+		/* 远端服务器的socket地址 */
     struct sockaddr                 *sockaddr;
     socklen_t                        socklen;
+		/* 远端服务器的名称 */
     ngx_str_t                       *name;
 
+		/* 连接出现异常后重试的次数 */
     ngx_uint_t                       tries;
 
+		/* 获取连接的方法，如果使用长连接构成的连接池，那么必须实现get方法 */
     ngx_event_get_peer_pt            get;
     ngx_event_free_peer_pt           free;
+		/* 与上面的两个函数配合使用，用于作为他们的参数 */
     void                            *data;
 
 #if (NGX_SSL)
@@ -56,8 +61,10 @@ struct ngx_peer_connection_s {
     ngx_atomic_t                    *lock;
 #endif
 
+		/* 本机地址信息 */
     ngx_addr_t                      *local;
 
+		/* 接收缓冲区的大小 */
     int                              rcvbuf;
 
     ngx_log_t                       *log;

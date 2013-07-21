@@ -30,9 +30,12 @@ int              ngx_argc;
 char           **ngx_argv;
 char           **ngx_os_argv;
 
+/* 当前操作的进程在ngx_processes数组中的下标 */
 ngx_int_t        ngx_process_slot;
 ngx_socket_t     ngx_channel;
+/* 数组有有意义的进程的最大下标 */
 ngx_int_t        ngx_last_process;
+/* 全局数组，仅给master使用的，虽然子进程中也会有这个数组 */
 ngx_process_t    ngx_processes[NGX_MAX_PROCESSES];
 
 

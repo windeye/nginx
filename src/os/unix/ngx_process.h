@@ -22,15 +22,15 @@ typedef void (*ngx_spawn_proc_pt) (ngx_cycle_t *cycle, void *data);
 /* 进程在nginx中的抽象 */
 typedef struct {
     ngx_pid_t           pid;              /* 进程id */
-    int                 status;           /* 进程状态 */
-    ngx_socket_t        channel[2];       /* socket pair */
+    int                 status;           /* 调用waitpid获取到的进程状态 */
+    ngx_socket_t        channel[2];       /* socket pair,用于master与worker之间的通信 */
 
-    ngx_spawn_proc_pt   proc;             /* 进程执行的函数 */
+    ngx_spawn_proc_pt   proc;             /* 进程执行的函数,父进程调用spawn_process生成子进程时使用 */
     void               *data;             /* 函数的参数 */
-    char               *name;
+    char               *name;             /* 进程的名称 */
 
-    unsigned            respawn:1;
-    unsigned            just_spawn:1;
+    unsigned            respawn:1;        /* 为1时表示正在重新生成子进程 */     
+    unsigned            just_spawn:1;     /* 为1时标志正在生成子进程 */
     unsigned            detached:1;
     unsigned            exiting:1;
     unsigned            exited:1;

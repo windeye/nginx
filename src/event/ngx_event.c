@@ -95,11 +95,15 @@ static ngx_command_t  ngx_events_commands[] = {
 
 static ngx_core_module_t  ngx_events_module_ctx = {
     ngx_string("events"),
+		/* create为空，init其实也没做什么事，以前这俩函数都是NULL,
+		 * 后来的版本增加啦init函数，events模块会在出现events{...}后
+		 * 调用各事件模块去解析events内的配置项，因此不需要这俩函数 */
     NULL,
     ngx_event_init_conf
 };
 
 
+/* 在数组里是第四个元素 */
 ngx_module_t  ngx_events_module = {
     NGX_MODULE_V1,
     &ngx_events_module_ctx,                /* module context */
@@ -121,6 +125,7 @@ static ngx_str_t  event_core_name = ngx_string("event_core");
 
 static ngx_command_t  ngx_event_core_commands[] = {
 
+	  /* 连接池的大小,也是每个worker进程中支持的TCP最大连接数 */
     { ngx_string("worker_connections"),
       NGX_EVENT_CONF|NGX_CONF_TAKE1,
       ngx_event_connections,
@@ -128,6 +133,7 @@ static ngx_command_t  ngx_event_core_commands[] = {
       0,
       NULL },
 
+	  /* 连接池的大小,也是每个worker进程中支持的TCP最大连接数,与上一个重复 */
     { ngx_string("connections"),
       NGX_EVENT_CONF|NGX_CONF_TAKE1,
       ngx_event_connections,
@@ -183,13 +189,16 @@ ngx_event_module_t  ngx_event_core_module_ctx = {
 };
 
 
+/* 第一个事件类型的模块,其他事件模块会依赖core的配置 */
 ngx_module_t  ngx_event_core_module = {
     NGX_MODULE_V1,
     &ngx_event_core_module_ctx,            /* module context */
     ngx_event_core_commands,               /* module directives */
     NGX_EVENT_MODULE,                      /* module type */
     NULL,                                  /* init master */
+		/* 实现了init函数,module在在还没有fork出worker子进程时调用 */
     ngx_event_module_init,                 /* init module */
+		/* 在worker中调用 */
     ngx_event_process_init,                /* init process */
     NULL,                                  /* init thread */
     NULL,                                  /* exit thread */
@@ -294,7 +303,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
     }
 }
 
-
+/* 将读事件添加到事件驱动模块中 */
 ngx_int_t
 ngx_handle_read_event(ngx_event_t *rev, ngx_uint_t flags)
 {
@@ -363,6 +372,8 @@ ngx_handle_read_event(ngx_event_t *rev, ngx_uint_t flags)
 }
 
 
+/* 将写事件添加到事件驱动模块中,lowat参数表示当前连接对应的套接字缓冲区中必须有
+ * lowat大小的可用空间时，epoll_wait才处理这个可写事件，为0时表示不考虑缓冲区大小*/
 ngx_int_t
 ngx_handle_write_event(ngx_event_t *wev, size_t lowat)
 {
@@ -590,6 +601,7 @@ ngx_event_module_init(ngx_cycle_t *cycle)
 static void
 ngx_timer_signal_handler(int signo)
 {
+	  /* 设为1，表示需要更新时间,为1时每个事件驱动模块都要调用ngx_time_update方法 */
     ngx_event_timer_alarm = 1;
 
 #if 1
@@ -614,6 +626,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
     ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
     ecf = ngx_event_get_conf(cycle->conf_ctx, ngx_event_core_module);
 
+		/* master worker模式，worker数目大于1，且打开的accept_mutex模式，才真正使用accept_mutex */
     if (ccf->master && ccf->worker_processes > 1 && ecf->accept_mutex) {
         ngx_use_accept_mutex = 1;
         ngx_accept_mutex_held = 0;
@@ -641,15 +654,18 @@ ngx_event_process_init(ngx_cycle_t *cycle)
     }
 #endif
 
+		/* 初始化定时器 */
     if (ngx_event_timer_init(cycle->log) == NGX_ERROR) {
         return NGX_ERROR;
     }
 
+		/* 调用use配置项指定的事件模块的init函数 */
     for (m = 0; ngx_modules[m]; m++) {
         if (ngx_modules[m]->type != NGX_EVENT_MODULE) {
             continue;
         }
 
+				/* 只有use指定的module的init才会被调用 */
         if (ngx_modules[m]->ctx_index != ecf->use) {
             continue;
         }
@@ -666,11 +682,13 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 
 #if !(NGX_WIN32)
 
+		/*  如果设置了time resolution配置项，则需要控制时间精度 */
     if (ngx_timer_resolution && !(ngx_event_flags & NGX_USE_TIMER_EVENT)) {
         struct sigaction  sa;
         struct itimerval  itv;
 
         ngx_memzero(&sa, sizeof(struct sigaction));
+				/* 定时器回调 */
         sa.sa_handler = ngx_timer_signal_handler;
         sigemptyset(&sa.sa_mask);
 
@@ -685,6 +703,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
         itv.it_value.tv_sec = ngx_timer_resolution / 1000;
         itv.it_value.tv_usec = (ngx_timer_resolution % 1000 ) * 1000;
 
+				/* 设置定时器 */
         if (setitimer(ITIMER_REAL, &itv, NULL) == -1) {
             ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
                           "setitimer() failed");
@@ -730,6 +749,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
     rev = cycle->read_events;
     for (i = 0; i < cycle->connection_n; i++) {
         rev[i].closed = 1;
+				/* 为readevents设置这个值 */
         rev[i].instance = 1;
 #if (NGX_THREADS)
         rev[i].lock = &c[i].lock;
@@ -755,7 +775,8 @@ ngx_event_process_init(ngx_cycle_t *cycle)
     i = cycle->connection_n;
     next = NULL;
  
-    /* 现在data充当一个链表的指针，后面还会担当其他角色 */
+    /* 现在data充当一个链表的指针，后面还会担当其他角色,从最后一个connection开始遍历
+		 * 生成一个逆向的单向链表 */
     do {
         i--;
 
@@ -771,6 +792,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 #endif
     } while (i);
 
+		/* 空闲连接的头指针 */
     cycle->free_connections = next;
     cycle->free_connection_n = cycle->connection_n;
 
@@ -779,6 +801,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
     ls = cycle->listening.elts;
     for (i = 0; i < cycle->listening.nelts; i++) {
 
+			  /* 为所有的listeging_t结构分配连接，同时读事件的回调设为ngx_event_acceptex */
         c = ngx_get_connection(ls[i].fd, cycle->log);
 
         if (c == NULL) {
@@ -793,6 +816,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
         rev = c->read;
 
         rev->log = c->log;
+				/* 可以accept建立新的连接 */
         rev->accept = 1;
 
 #if (NGX_HAVE_DEFERRED_ACCEPT)
@@ -938,6 +962,7 @@ ngx_events_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     /* count the number of the event modules and set up their indices */
 
+		/* 初始化所有事件模块的ctx_index序号 */
     ngx_event_max_module = 0;
     for (i = 0; ngx_modules[i]; i++) {
         if (ngx_modules[i]->type != NGX_EVENT_MODULE) {
@@ -952,6 +977,7 @@ ngx_events_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
+		/* 分配指针数组，存储所有的事件模块生成的配置项结构体指针 */
     *ctx = ngx_pcalloc(cf->pool, ngx_event_max_module * sizeof(void *));
     if (*ctx == NULL) {
         return NGX_CONF_ERROR;
@@ -959,6 +985,7 @@ ngx_events_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     *(void **) conf = ctx;
 
+		/* 调用所有模块的create_conf */
     for (i = 0; ngx_modules[i]; i++) {
         if (ngx_modules[i]->type != NGX_EVENT_MODULE) {
             continue;
@@ -976,9 +1003,11 @@ ngx_events_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     pcf = *cf;
     cf->ctx = ctx;
+		/* 设置的类型在解析是好像挺重要的 */
     cf->module_type = NGX_EVENT_MODULE;
     cf->cmd_type = NGX_EVENT_CONF;
 
+		/* 为所有的事件模块解析nginx.conf */
     rv = ngx_conf_parse(cf, NULL);
 
     *cf = pcf;
@@ -986,6 +1015,7 @@ ngx_events_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     if (rv != NGX_CONF_OK)
         return rv;
 
+		/* 调用所有模块的create_conf */
     for (i = 0; ngx_modules[i]; i++) {
         if (ngx_modules[i]->type != NGX_EVENT_MODULE) {
             continue;
