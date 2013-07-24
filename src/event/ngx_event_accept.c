@@ -46,6 +46,7 @@ ngx_event_accept(ngx_event_t *ev)
         ev->available = 1;
 
     } else if (!(ngx_event_flags & NGX_USE_KQUEUE_EVENT)) {
+			  /* 看multi_accept是否启用 */
         ev->available = ecf->multi_accept;
     }
 
@@ -121,6 +122,7 @@ ngx_event_accept(ngx_event_t *ev)
                 }
             }
 
+						/* 如果进程打开的文件数到达了最大值，则取消这个进程listen的所有句柄 */
             if (err == NGX_EMFILE || err == NGX_ENFILE) {
                 if (ngx_disable_accept_events((ngx_cycle_t *) ngx_cycle)
                     != NGX_OK)
@@ -129,11 +131,13 @@ ngx_event_accept(ngx_event_t *ev)
                 }
 
                 if (ngx_use_accept_mutex) {
+									  /* 如果取得了accept_mutex则释放 */
                     if (ngx_accept_mutex_held) {
                         ngx_shmtx_unlock(&ngx_accept_mutex);
                         ngx_accept_mutex_held = 0;
                     }
 
+										/* 设置这个进程现在不accept */
                     ngx_accept_disabled = 1;
 
                 } else {
@@ -145,10 +149,11 @@ ngx_event_accept(ngx_event_t *ev)
         }
 
 #if (NGX_STAT_STUB)
+				/* accept成功数+1 */
         (void) ngx_atomic_fetch_add(ngx_stat_accepted, 1);
 #endif
 
-        /* 如果空闲连接小于连接池的1/8就停止accept */
+        /* 如果空闲连接小于连接池的1/8就停止accept,下次就不会再accept啦 */
         ngx_accept_disabled = ngx_cycle->connection_n / 8
                               - ngx_cycle->free_connection_n;
 
@@ -165,9 +170,11 @@ ngx_event_accept(ngx_event_t *ev)
         }
 
 #if (NGX_STAT_STUB)
+				/* accept成功并且active的连接 */
         (void) ngx_atomic_fetch_add(ngx_stat_active, 1);
 #endif
 
+				/* 为连接分配内存池，在连接释放到空闲连接时会释放内存池 */
         c->pool = ngx_create_pool(ls->pool_size, ev->log);
         if (c->pool == NULL) {
             ngx_close_accepted_connection(c);
@@ -214,7 +221,7 @@ ngx_event_accept(ngx_event_t *ev)
 
         *log = ls->log;
 
-        /* 设置读取的回调，这里依赖于操作系统。 */
+        /* 设置读取的回调，这里依赖于操作系统。读写回调在这设置的 */
         c->recv = ngx_recv;
         c->send = ngx_send;
         c->recv_chain = ngx_recv_chain;
@@ -244,6 +251,7 @@ ngx_event_accept(ngx_event_t *ev)
         rev = c->read;
         wev = c->write;
 
+				/* 可写ready */
         wev->ready = 1;
 
         if (ngx_event_flags & (NGX_USE_AIO_EVENT|NGX_USE_RTSIG_EVENT)) {
@@ -252,6 +260,7 @@ ngx_event_accept(ngx_event_t *ev)
         }
 
         if (ev->deferred_accept) {
+					  /* deferred accept时读事件也ready,因为此时已经有数据到达 */
             rev->ready = 1;
 #if (NGX_HAVE_KQUEUE)
             rev->available = 1;
@@ -359,7 +368,7 @@ ngx_event_accept(ngx_event_t *ev)
         ngx_log_debug3(NGX_LOG_DEBUG_EVENT, log, 0,
                        "*%d accept: %V fd:%d", c->number, &c->addr_text, s);
 
-        /* 如果不是epoll的话，就调用add_conn */
+        /* 如果不是epoll的话，就调用add_conn,感觉有点问题呢，epoll也要添加到事件集吧 */
         if (ngx_add_conn && (ngx_event_flags & NGX_USE_EPOLL_EVENT) == 0) {
             if (ngx_add_conn(c) == NGX_ERROR) {
                 ngx_close_accepted_connection(c);
@@ -387,11 +396,15 @@ ngx_event_accept(ngx_event_t *ev)
 ngx_int_t
 ngx_trylock_accept_mutex(ngx_cycle_t *cycle)
 {
+	  /* 共享内存实现进程间同步锁，返回1表示成功拿到锁，0表示失败，此过程
+		 * 是非阻塞的，一旦锁被其他worker占用，则立即返回 */
     if (ngx_shmtx_trylock(&ngx_accept_mutex)) {
 
         ngx_log_debug0(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
                        "accept mutex locked");
 
+				/* 获取到锁，但ngx_accept_mutex_held为1，表示当前进程已经获取到锁了，
+				 * 则立即返回*/
         if (ngx_accept_mutex_held
             && ngx_accept_events == 0
             && !(ngx_event_flags & NGX_USE_RTSIG_EVENT))
@@ -399,12 +412,14 @@ ngx_trylock_accept_mutex(ngx_cycle_t *cycle)
             return NGX_OK;
         }
 
+				/* 将所有监听连接的读事件添加到当前epoll的事件驱动模块中 */
         if (ngx_enable_accept_events(cycle) == NGX_ERROR) {
             ngx_shmtx_unlock(&ngx_accept_mutex);
             return NGX_ERROR;
         }
 
         ngx_accept_events = 0;
+				/* 把ngx_accept_mutex_held置为1，告诉其他模块知道目前进程已经获得了锁 */
         ngx_accept_mutex_held = 1;
 
         return NGX_OK;
@@ -413,6 +428,7 @@ ngx_trylock_accept_mutex(ngx_cycle_t *cycle)
     ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
                    "accept mutex lock failed: %ui", ngx_accept_mutex_held);
 
+		/* 如果获取锁失败，但这个标志为却为1，说明进程还在取得锁的状态，这样有问题，需要处理 */
     if (ngx_accept_mutex_held) {
         if (ngx_disable_accept_events(cycle) == NGX_ERROR) {
             return NGX_ERROR;
@@ -470,6 +486,7 @@ ngx_disable_accept_events(ngx_cycle_t *cycle)
 
         c = ls[i].connection;
 
+				/* 读事件没有激活的就不用取消监听的事件了 */
         if (!c->read->active) {
             continue;
         }
@@ -480,6 +497,7 @@ ngx_disable_accept_events(ngx_cycle_t *cycle)
             }
 
         } else {
+					  /* 从事件集中删除监听的accept读事件 */
             if (ngx_del_event(c->read, NGX_READ_EVENT, NGX_DISABLE_EVENT)
                 == NGX_ERROR)
             {

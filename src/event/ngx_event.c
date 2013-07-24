@@ -231,6 +231,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
          * 在每次循环处理事件的时候进行更新，而master则捕捉到并处理完一个信号返回
          * 的时候会更新时间缓存。
          */
+			  /* 获取最近一个将要触发的事件距离现在多少毫秒， */
         timer = ngx_event_find_timer();
         /* 设置更新时间缓存的标志位 */
         flags = NGX_UPDATE_TIME;
@@ -255,9 +256,12 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
             }
 
             if (ngx_accept_mutex_held) {
+							  /* 抢到锁了，flags = NGX_UPDATE_TIME | NGX_POST_EVENTS,为了
+								 * 尽早释放accept_mutex,延迟处理accept返回的连接 */
                 flags |= NGX_POST_EVENTS;
 
             } else {
+							  /* 没抢到锁，则ngx_process_events的定时器设为ngx_accept_mutex_delay */
                 if (timer == NGX_TIMER_INFINITE
                     || timer > ngx_accept_mutex_delay)
                 {
@@ -272,6 +276,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
     /* 处理事件，epoll = ngx_epoll_process_events */
     (void) ngx_process_events(cycle, timer, flags);
 
+		/* 计算处理事件的事件 */
     delta = ngx_current_msec - delta;
 
     ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
@@ -282,10 +287,13 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
         ngx_event_process_posted(cycle, &ngx_posted_accept_events);
     }
 
+		/* 处理完accept队列里的事件后，就在这里释放accept_mutex锁 */
     if (ngx_accept_mutex_held) {
         ngx_shmtx_unlock(&ngx_accept_mutex);
     }
 
+		/* 如果ngx_process_events的执行时间大于0，则可能有新的定时器
+		 * 事件触发，则调用定时器方法处理所有可能满足条件的定时器事件*/
     if (delta) {
         ngx_event_expire_timers();
     }
@@ -293,6 +301,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
     ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
                    "posted events %p", ngx_posted_events);
 
+		/* 最后处理posted队列的非accept事件 */
     if (ngx_posted_events) {
         if (ngx_threaded) {
             ngx_wakeup_worker_thread(cycle);
